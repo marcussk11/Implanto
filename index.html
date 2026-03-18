@@ -130,11 +130,19 @@ input::placeholder,textarea::placeholder{color:var(--muted);}
 .toast{position:fixed;top:66px;right:16px;background:var(--green);color:#0d1117;padding:10px 18px;border-radius:12px;font-size:13px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;z-index:500;}
 .toast.show{opacity:1;}
 .empty{text-align:center;padding:36px 16px;color:var(--muted);font-size:13px;line-height:1.9;}
-/* ── LOADING ── */
-.loading{text-align:center;padding:30px;color:var(--muted);font-size:13px;}
+/* ── TIMELINE ── */
+.tl-item{display:flex;gap:12px;margin-bottom:0;}
+.tl-line{display:flex;flex-direction:column;align-items:center;flex-shrink:0;}
+.tl-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.tl-connector{width:2px;flex:1;background:var(--border2);margin:4px 0;}
+.tl-content{flex:1;padding-bottom:16px;}
+.tl-date{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.tl-card{background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:11px 13px;}
+.tl-tipo{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
+.tl-titulo{font-size:14px;font-weight:600;margin-bottom:2px;}
+.tl-detalhe{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.6;}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
 @keyframes spin{to{transform:rotate(360deg);}}
-.spinner{width:20px;height:20px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:8px;}
 </style>
 </head>
 <body>
@@ -162,9 +170,11 @@ input::placeholder,textarea::placeholder{color:var(--muted);}
       <div class="form-group"><label class="form-label">Especialidade</label>
         <select id="signup-espec">
           <option value="Implantodontista">Implantodontista</option>
-          <option value="Cirurgião Dentista">Cirurgião Dentista</option>
           <option value="Periodontista">Periodontista</option>
           <option value="Protesista">Protesista</option>
+          <option value="Cirurgião Dentista">Cirurgião Dentista</option>
+          <option value="Endodontista">Endodontista</option>
+          <option value="Ortodontista">Ortodontista</option>
           <option value="Outro">Outro</option>
         </select>
       </div>
@@ -207,8 +217,11 @@ input::placeholder,textarea::placeholder{color:var(--muted);}
   <button class="drawer-item active" id="di-painel" onclick="goTo('painel',this,'Painel','visão geral')">
     <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Painel
   </button>
-  <button class="drawer-item" id="di-lancar" onclick="goTo('lancar',this,'Lançar','novo procedimento')">
-    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Lançar Procedimento
+  <button class="drawer-item" id="di-pacientes" onclick="goTo('pacientes',this,'Pacientes','histórico por paciente')">
+    <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Pacientes
+  </button>
+  <button class="drawer-item" id="di-lancar" onclick="goTo('lancar',this,'Procedimentos','novo lançamento')">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Novo Procedimento
   </button>
   <button class="drawer-item" id="di-hist" onclick="goTo('hist',this,'Histórico','todos os procedimentos')">
     <svg viewBox="0 0 24 24"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>Histórico
@@ -253,9 +266,37 @@ input::placeholder,textarea::placeholder{color:var(--muted);}
   <div id="lista-painel"></div>
 </div>
 
+<div class="page" id="pg-pacientes">
+  <div class="pg-title">Pacientes</div>
+  <div class="pg-sub">Histórico completo por paciente</div>
+  <div class="search-wrap">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/></svg>
+    <input type="text" id="busca-pac-lista" placeholder="Buscar paciente..." oninput="renderPacientes()">
+  </div>
+  <div id="lista-pacientes"></div>
+</div>
+
+<!-- Pasta do Paciente -->
+<div class="page" id="pg-pasta-pac">
+  <div style="display:flex;align-items:center;gap:10px;padding:72px 16px 0;">
+    <button onclick="goTo('pacientes',document.getElementById('di-pacientes'),'Pacientes','histórico por paciente')" style="background:var(--s2);border:1px solid var(--border2);border-radius:10px;padding:8px 12px;font-size:13px;color:var(--muted);cursor:pointer;font-family:'Sora',sans-serif;">← Voltar</button>
+    <div>
+      <div class="pg-title" id="pasta-pac-nome" style="margin-bottom:0;">Paciente</div>
+      <div style="font-size:11px;color:var(--muted);" id="pasta-pac-sub">histórico completo</div>
+    </div>
+  </div>
+  <div style="padding:14px 16px 0;">
+    <div class="metrics" id="pasta-metrics"></div>
+    <button class="btn blue" style="margin-bottom:12px;" onclick="abrirNovoProc()">+ Novo procedimento</button>
+    <button class="btn ghost" style="margin-bottom:16px;margin-top:0;" onclick="abrirModal('nota', document.getElementById('pasta-pac-nome').textContent)">+ Nova nota clínica</button>
+    <div class="sec">Linha do tempo</div>
+    <div id="pasta-timeline"></div>
+  </div>
+</div>
+
 <div class="page" id="pg-lancar">
-  <div class="pg-title">Novo lançamento</div>
-  <div class="pg-sub">Preencha os dados do procedimento</div>
+  <div class="pg-title">Novo Procedimento</div>
+  <div class="pg-sub">Preencha os dados do atendimento</div>
   <button class="btn ghost" style="margin-bottom:14px;margin-top:0;font-size:12px;padding:9px;" onclick="abrirModal('gerenciarProcs',null)">⚙️ Gerenciar procedimentos</button>
   <div class="form-group"><label class="form-label">Paciente</label><input type="text" id="inp-pac" placeholder="Nome do paciente" oninput="calcPrev()"></div>
   <div class="form-group"><label class="form-label">Procedimento</label>
@@ -561,7 +602,68 @@ input::placeholder,textarea::placeholder{color:var(--muted);}
 <div class="toast" id="toast"></div>
 
 <script>
-// ── SUPABASE ────────────────────────────────────────────────────────────────
+// ── PROCEDIMENTOS POR ESPECIALIDADE ──────────────────────────────────────────
+const PROCS_ESPEC = {
+  'Implantodontista': [
+    {nome:'Implante Unitário · 1ª Etapa (Cirurgia)',val:1800,custo:350},
+    {nome:'Implante Unitário · 2ª Etapa (Reabertura)',val:600,custo:50},
+    {nome:'Coroa sobre Implante',val:2200,custo:600},
+    {nome:'Enxerto Ósseo',val:2500,custo:800},
+    {nome:'Enxerto de Tecido Mole',val:1500,custo:300},
+    {nome:'Protocolo (Carga Imediata)',val:12000,custo:3500},
+    {nome:'Aperto / Manutenção de Implante',val:250,custo:0},
+    {nome:'Consulta / Avaliação',val:200,custo:0},
+  ],
+  'Periodontista': [
+    {nome:'Raspagem e Alisamento Radicular',val:800,custo:50},
+    {nome:'Cirurgia Periodontal',val:2000,custo:200},
+    {nome:'Enxerto Gengival',val:1800,custo:300},
+    {nome:'Gengivectomia',val:1200,custo:100},
+    {nome:'Implante Unitário · 1ª Etapa',val:1800,custo:350},
+    {nome:'Consulta / Avaliação',val:200,custo:0},
+  ],
+  'Protesista': [
+    {nome:'Coroa de Porcelana',val:2000,custo:600},
+    {nome:'Coroa Metal-cerâmica',val:1500,custo:400},
+    {nome:'Prótese Parcial Fixa (por elemento)',val:1800,custo:500},
+    {nome:'Prótese Total',val:2500,custo:700},
+    {nome:'Prótese Parcial Removível',val:1800,custo:500},
+    {nome:'Protocolo sobre Implantes',val:12000,custo:3500},
+    {nome:'Faceta de Porcelana',val:2200,custo:700},
+    {nome:'Consulta / Avaliação',val:200,custo:0},
+  ],
+  'Cirurgião Dentista': [
+    {nome:'Extração Simples',val:300,custo:30},
+    {nome:'Extração de Siso',val:800,custo:80},
+    {nome:'Frenectomia',val:600,custo:50},
+    {nome:'Biopsia',val:500,custo:50},
+    {nome:'Implante Unitário · 1ª Etapa',val:1800,custo:350},
+    {nome:'Consulta / Avaliação',val:200,custo:0},
+  ],
+  'Endodontista': [
+    {nome:'Tratamento de Canal · 1 raiz',val:800,custo:80},
+    {nome:'Tratamento de Canal · 2 raízes',val:1100,custo:100},
+    {nome:'Tratamento de Canal · 3 raízes',val:1400,custo:120},
+    {nome:'Retratamento de Canal',val:1600,custo:150},
+    {nome:'Apicectomia',val:2000,custo:200},
+    {nome:'Consulta / Avaliação',val:200,custo:0},
+  ],
+  'Ortodontista': [
+    {nome:'Instalação de Aparelho Fixo',val:3500,custo:800},
+    {nome:'Manutenção Mensal',val:250,custo:20},
+    {nome:'Instalação de Alinhador',val:4000,custo:1200},
+    {nome:'Contenção',val:600,custo:150},
+    {nome:'Consulta / Avaliação',val:200,custo:0},
+  ],
+  'Outro': [
+    {nome:'Consulta / Avaliação',val:200,custo:0},
+    {nome:'Limpeza / Profilaxia',val:200,custo:30},
+    {nome:'Restauração Resina',val:300,custo:40},
+    {nome:'Clareamento',val:800,custo:150},
+  ],
+};
+
+// ── SUPABASE ──────────────────────────────────────────────────────────────────
 const SUPA_URL = 'https://ogjljzrdxekmgiqognyj.supabase.co';
 const SUPA_KEY = 'sb_publishable_SxK__cHpO4ZyvWKieAR4yg_e05MIbHJ';
 const { createClient } = supabase;
@@ -578,7 +680,7 @@ const pad = n => n.toString().padStart(2,'0');
 const hoje = () => { const d=new Date(); return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear(); };
 const mesAtual = () => { const d=new Date(); return pad(d.getMonth()+1)+'/'+d.getFullYear(); };
 const uid = () => Date.now() + Math.floor(Math.random()*999);
-const getRepasse = () => parseFloat(userMeta.repasse) || 0.65;
+const getRepasse = () => userMeta.repasse ? parseFloat(userMeta.repasse) : 0;
 
 function showToast(msg,color){
   const t=document.getElementById('toast');
@@ -612,11 +714,16 @@ async function fazerCadastro(){
   const erro=document.getElementById('auth-erro');
   if(!nome||!email||!senha){erro.textContent='Preencha todos os campos.';erro.style.display='block';return;}
   if(senha.length<6){erro.textContent='A senha precisa ter pelo menos 6 caracteres.';erro.style.display='block';return;}
-  const {error}=await sb.auth.signUp({email,password:senha,options:{data:{nome,espec,repasse:'0.65'}}});
+  const {data, error}=await sb.auth.signUp({email,password:senha,options:{data:{nome,espec,repasse:''}}});
   if(error){erro.textContent=error.message;erro.style.background='rgba(248,113,113,.1)';erro.style.color='var(--red)';erro.style.display='block';}
   else{
+    // Seed specialty procedures
+    if(data?.user){
+      const procs=(PROCS_ESPEC[espec]||PROCS_ESPEC['Outro']).map(p=>({...p,user_id:data.user.id}));
+      await sb.from('custom_procs').insert(procs);
+    }
     erro.style.background='rgba(52,211,153,.1)';erro.style.color='var(--green)';
-    erro.textContent='✓ Conta criada! Verifique seu email para confirmar o cadastro, depois entre.';
+    erro.textContent='✓ Conta criada! Verifique seu email para confirmar, depois entre.';
     erro.style.display='block';
     switchTab('login');
     document.getElementById('login-email').value=email;
@@ -670,6 +777,7 @@ function goTo(id,btn,title,sub){
   document.getElementById('topbar-sub').textContent=sub;
   fecharDrawer();
   const renders={painel:renderPainel,hist:renderHist,resumo:renderResumo,
+    pacientes:renderPacientes,
     diario:renderDiario,estoque:renderEstoque,protese:renderProtese,contas:renderContas,config:renderConfig};
   if(renders[id])renders[id]();
 }
@@ -770,7 +878,7 @@ function renderPainel(){
   document.getElementById('m-liq').textContent=fmt(dM.reduce((s,d)=>s+d.liq,0));
   document.getElementById('m-custo').textContent=fmt(dM.reduce((s,d)=>s+d.custo,0));
   document.getElementById('m-qtd').textContent=dM.length+' procedimento'+(dM.length!==1?'s':'');
-  document.getElementById('m-repasse').textContent=userMeta.repasse?Math.round(getRepasse()*100)+'%':'–';
+  document.getElementById('m-repasse').textContent=userMeta.repasse?Math.round(getRepasse()*100)+'%':'Configurar →';
   const mn=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   document.getElementById('sub-painel').textContent=mn[new Date().getMonth()]+' '+new Date().getFullYear();
   const ul=document.getElementById('lista-painel');
@@ -892,6 +1000,99 @@ async function delProc(id){
   if(!confirm('Excluir este procedimento?'))return;
   await sb.from('procedimentos').delete().eq('id',id);
   dados=dados.filter(x=>x.id!==id);renderHist();renderPainel();showToast('Removido.','var(--red)');
+}
+
+// ── PACIENTES ────────────────────────────────────────────────────────────────
+function renderPacientes(){
+  const busca=(document.getElementById('busca-pac-lista').value||'').toLowerCase();
+  const map={};
+  dados.forEach(d=>{if(!map[d.pac])map[d.pac]={procs:[],notas:[]};map[d.pac].procs.push(d);});
+  notas.forEach(n=>{if(!map[n.pac])map[n.pac]={procs:[],notas:[]};map[n.pac].notas.push(n);});
+  const pacs=Object.keys(map).filter(p=>!busca||p.toLowerCase().includes(busca)).sort();
+  const el=document.getElementById('lista-pacientes');
+  if(!pacs.length){el.innerHTML='<div class="empty">Nenhum paciente ainda.<br>Lance um procedimento para começar.</div>';return;}
+  el.innerHTML=pacs.map(pac=>{
+    const d=map[pac];
+    const total=d.procs.reduce((s,p)=>s+p.liq,0);
+    const ultimo=d.procs.length?d.procs.sort((a,b)=>b.id-a.id)[0].data:'–';
+    return `<div class="card" style="cursor:pointer;" onclick="abrirPasta('${esc(pac)}')">
+      <div class="card-row">
+        <div style="display:flex;align-items:center;gap:12px;flex:1;">
+          <div style="width:40px;height:40px;border-radius:50%;background:rgba(79,143,255,.15);border:1.5px solid rgba(79,143,255,.3);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:var(--accent);flex-shrink:0;">${esc(pac).charAt(0).toUpperCase()}</div>
+          <div>
+            <div class="card-title">${esc(pac)}</div>
+            <div class="card-sub">${d.procs.length} proc. · ${d.notas.length} nota${d.notas.length!==1?'s':''} · último: ${ultimo}</div>
+          </div>
+        </div>
+        <div class="card-right">
+          <div style="font-size:13px;font-weight:600;color:var(--green)">${fmt(total)}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px;">líquido total</div>
+          <div style="font-size:18px;color:var(--muted);margin-top:4px;">›</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function abrirPasta(pac){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.drawer-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById('pg-pasta-pac').classList.add('active');
+  document.getElementById('topbar-title').textContent='🦷 Paciente';
+  document.getElementById('topbar-sub').textContent=pac;
+  document.getElementById('pasta-pac-nome').textContent=pac;
+  // Metrics
+  const pProcs=dados.filter(d=>d.pac===pac);
+  const pNotas=notas.filter(n=>n.pac===pac);
+  const totalBruto=pProcs.reduce((s,d)=>s+d.val,0);
+  const totalLiq=pProcs.reduce((s,d)=>s+d.liq,0);
+  document.getElementById('pasta-metrics').innerHTML=`
+    <div class="metric"><div class="metric-lbl">Procedimentos</div><div class="metric-val b">${pProcs.length}</div></div>
+    <div class="metric"><div class="metric-lbl">Total líquido</div><div class="metric-val g">${fmt(totalLiq)}</div></div>
+    <div class="metric"><div class="metric-lbl">Total bruto</div><div class="metric-val a">${fmt(totalBruto)}</div></div>
+    <div class="metric"><div class="metric-lbl">Notas clínicas</div><div class="metric-val p">${pNotas.length}</div></div>
+  `;
+  document.getElementById('pasta-pac-sub').textContent=`${pProcs.length} procedimentos · ${pNotas.length} notas`;
+  // Timeline: merge procs + notas sorted by id desc
+  const eventos=[
+    ...pProcs.map(p=>({tipo:'proc',data:p.data,id:p.id,obj:p})),
+    ...pNotas.map(n=>({tipo:'nota',data:n.data,id:n.id,obj:n})),
+  ].sort((a,b)=>b.id-a.id);
+  const tl=document.getElementById('pasta-timeline');
+  if(!eventos.length){tl.innerHTML='<div class="empty">Nenhum registro ainda.</div>';return;}
+  tl.innerHTML=eventos.map((ev,i)=>{
+    const isLast=i===eventos.length-1;
+    let dot,tipo,titulo,detalhe;
+    if(ev.tipo==='proc'){
+      dot='var(--accent)';tipo='💰 Procedimento';
+      titulo=esc(ev.obj.proc);
+      detalhe=`Bruto: ${fmt(ev.obj.val)} · Líquido: <span style="color:var(--green);font-weight:600;">${fmt(ev.obj.liq)}</span>`;
+    } else {
+      dot='var(--purple)';tipo='📋 Nota Clínica';
+      titulo=ev.obj.proc?esc(ev.obj.proc):'Evolução';
+      detalhe=`<span style="white-space:pre-wrap;">${esc(ev.obj.txt)}</span>`;
+    }
+    return `<div class="tl-item">
+      <div class="tl-line">
+        <div class="tl-dot" style="background:${dot};"></div>
+        ${!isLast?'<div class="tl-connector"></div>':''}
+      </div>
+      <div class="tl-content">
+        <div class="tl-date">${ev.data||''}</div>
+        <div class="tl-card">
+          <div class="tl-tipo" style="color:${dot};">${tipo}</div>
+          <div class="tl-titulo">${titulo}</div>
+          <div class="tl-detalhe">${detalhe}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function abrirNovoProc(){
+  const pac=document.getElementById('pasta-pac-nome').textContent;
+  goTo('lancar',document.getElementById('di-lancar'),'Novo Procedimento','novo lançamento');
+  setTimeout(()=>{document.getElementById('inp-pac').value=pac;calcPrev();},50);
 }
 
 // ── RESUMO ───────────────────────────────────────────────────────────────────
@@ -1171,7 +1372,7 @@ function renderConfig(){
   document.getElementById('cfg-nome-display').textContent=nome||'Seu nome';
   document.getElementById('cfg-espec-display').textContent=espec;
   document.getElementById('cfg-avatar').textContent=nome?nome.charAt(0).toUpperCase():'?';
-  document.getElementById('cfg-repasse-atual').textContent=Math.round(rep*100)+'%';
+  document.getElementById('cfg-repasse-atual').textContent=userMeta.repasse?Math.round(rep*100)+'%':'Não configurado';
   document.getElementById('cfg-email-display').textContent=currentUser?.email||'';
 }
 async function salvarNome(){
