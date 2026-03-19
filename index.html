@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Implanto · Painel</title>
+<title>Implanto</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -198,7 +199,7 @@ input::placeholder,textarea::placeholder{color:var(--muted);}
 <!-- TOPBAR -->
 <div class="topbar">
   <div>
-    <div class="topbar-title" id="topbar-title">🦷 Painel</div>
+    <div class="topbar-title" id="topbar-title">🦷 Implantodontistas</div>
     <div class="topbar-sub" id="topbar-sub">visão geral</div>
   </div>
   <div class="menu-btn" onclick="abrirDrawer()">
@@ -214,8 +215,8 @@ input::placeholder,textarea::placeholder{color:var(--muted);}
     <button class="drawer-x" onclick="fecharDrawer()">×</button>
   </div>
   <div class="drawer-section">Principal</div>
-  <button class="drawer-item active" id="di-painel" onclick="goTo('painel',this,'Painel','visão geral')">
-    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Painel
+  <button class="drawer-item active" id="di-painel" onclick="goTo('painel',this,'Implantodontistas','visão geral')">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Implantodontistas
   </button>
   <button class="drawer-item" id="di-pacientes" onclick="goTo('pacientes',this,'Pacientes','histórico por paciente')">
     <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Pacientes
@@ -260,8 +261,30 @@ input::placeholder,textarea::placeholder{color:var(--muted);}
     <div class="metric"><div class="metric-lbl">Bruto mês</div><div class="metric-val b" id="m-bruto">R$ 0</div><div class="metric-sub" id="m-qtd">0 procedimentos</div></div>
     <div class="metric"><div class="metric-lbl">Líquido mês</div><div class="metric-val g" id="m-liq">R$ 0</div><div class="metric-sub">após custos</div></div>
     <div class="metric"><div class="metric-lbl">Custos mat.</div><div class="metric-val r" id="m-custo">R$ 0</div><div class="metric-sub">materiais</div></div>
-    <div class="metric"><div class="metric-lbl">Repasse</div><div class="metric-val a" id="m-repasse">65%</div><div class="metric-sub">da clínica</div></div>
+    <div class="metric"><div class="metric-lbl">Repasse</div><div class="metric-val a" id="m-repasse">–</div><div class="metric-sub">da clínica</div></div>
   </div>
+
+  <!-- Gráfico faturamento 6 meses -->
+  <div style="background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--text);">Faturamento — últimos 6 meses</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px;">Bruto vs Líquido</div>
+      </div>
+      <button onclick="exportarPDF()" style="background:var(--s2);border:1px solid var(--border2);border-radius:9px;padding:7px 12px;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;font-family:'Sora',sans-serif;display:flex;align-items:center;gap:5px;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        PDF
+      </button>
+    </div>
+    <canvas id="chart-fat" height="160"></canvas>
+  </div>
+
+  <!-- Gráfico procedimentos por tipo -->
+  <div style="background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:16px;">
+    <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:12px;">Procedimentos por tipo (mês atual)</div>
+    <canvas id="chart-tipos" height="160"></canvas>
+  </div>
+
   <div class="sec">Últimos lançamentos</div>
   <div id="lista-painel"></div>
 </div>
@@ -298,7 +321,7 @@ input::placeholder,textarea::placeholder{color:var(--muted);}
   <div class="pg-title">Novo Procedimento</div>
   <div class="pg-sub">Preencha os dados do atendimento</div>
   <button class="btn ghost" style="margin-bottom:14px;margin-top:0;font-size:12px;padding:9px;" onclick="abrirModal('gerenciarProcs',null)">⚙️ Gerenciar procedimentos</button>
-  <div class="form-group"><label class="form-label">Paciente</label><input type="text" id="inp-pac" placeholder="Nome do paciente" oninput="calcPrev()"></div>
+  <div class="form-group"><label class="form-label">Paciente</label><input type="text" id="inp-pac" placeholder="Nome do paciente" oninput="calcPrev()" list="dl-pacs-lancar"><datalist id="dl-pacs-lancar"></datalist></div>
   <div class="form-group"><label class="form-label">Procedimento</label>
     <select id="inp-proc" onchange="onProcChange()"><option value="">Selecione...</option></select>
   </div>
@@ -310,12 +333,18 @@ input::placeholder,textarea::placeholder{color:var(--muted);}
   </div>
   <div class="preview" id="preview" style="display:none;">
     <div class="pv-row"><span class="pv-key">Valor bruto</span><span class="pv-val" id="pv-b">–</span></div>
-    <div class="pv-row"><span class="pv-key">Repasse (<span id="pv-pct">65</span>%)</span><span class="pv-val" id="pv-r">–</span></div>
+    <div class="pv-row"><span class="pv-key">Repasse (<span id="pv-pct">–</span>%)</span><span class="pv-val" id="pv-r">–</span></div>
     <div class="pv-row"><span class="pv-key">Custo material</span><span class="pv-val" id="pv-c" style="color:var(--red)">–</span></div>
     <div class="pv-row"><span class="pv-key" style="font-weight:600;color:var(--text)">Seu líquido</span><span class="pv-val" id="pv-l" style="color:var(--green);font-size:16px;">–</span></div>
   </div>
   <button class="btn blue" onclick="salvar()">Salvar procedimento ✓</button>
   <button class="btn ghost" onclick="limparForm()">Limpar</button>
+
+  <!-- Procedimentos cadastrados -->
+  <div style="margin-top:24px;">
+    <div class="sec">Procedimentos cadastrados</div>
+    <div id="lista-procs-lancar"></div>
+  </div>
 </div>
 
 <div class="page" id="pg-hist">
@@ -761,7 +790,7 @@ async function carregarTudo(){
   dados = p.data||[]; notas = n.data||[]; estq = e.data||[];
   prots = pr.data||[]; contas = c.data||[]; customProcs = cp.data||[];
   buildProcOptions('inp-proc'); buildProcOptions('ep-proc',false);
-  renderPainel(); atualizarSaudacao(); renderConfig();
+  renderPainel(); atualizarSaudacao(); renderConfig(); renderProcsLancar();
 }
 
 // ── DRAWER/NAV ──────────────────────────────────────────────────────────────
@@ -777,7 +806,7 @@ function goTo(id,btn,title,sub){
   document.getElementById('topbar-sub').textContent=sub;
   fecharDrawer();
   const renders={painel:renderPainel,hist:renderHist,resumo:renderResumo,
-    pacientes:renderPacientes,
+    pacientes:renderPacientes, lancar:renderProcsLancar,
     diario:renderDiario,estoque:renderEstoque,protese:renderProtese,contas:renderContas,config:renderConfig};
   if(renders[id])renders[id]();
 }
@@ -861,17 +890,18 @@ async function adicionarProcCustom(){
   customProcs.push(data);
   document.getElementById('cp-nome').value='';document.getElementById('cp-val').value='';document.getElementById('cp-custo').value='';
   buildProcOptions('inp-proc');buildProcOptions('ep-proc',false);
-  renderProcCustomList();showToast('✓ Procedimento adicionado!');
+  renderProcCustomList();showToast('✓ Procedimento adicionado!');renderProcsLancar();
 }
 async function removerProcCustom(id){
   if(!confirm('Remover procedimento?'))return;
   await sb.from('custom_procs').delete().eq('id',id);
   customProcs=customProcs.filter(p=>p.id!==id);
   buildProcOptions('inp-proc');buildProcOptions('ep-proc',false);
-  renderProcCustomList();showToast('Removido.','var(--red)');
+  renderProcCustomList();renderProcsLancar();showToast('Removido.','var(--red)');
 }
 
-// ── PAINEL ───────────────────────────────────────────────────────────────────
+// ── PAINEL ────────────────────────────────────────────────────────────────────
+let chartFat=null, chartTipos=null;
 function renderPainel(){
   const mes=mesAtual(), dM=dados.filter(d=>d.data&&d.data.endsWith(mes));
   document.getElementById('m-bruto').textContent=fmt(dM.reduce((s,d)=>s+d.val,0));
@@ -881,25 +911,159 @@ function renderPainel(){
   document.getElementById('m-repasse').textContent=userMeta.repasse?Math.round(getRepasse()*100)+'%':'Configurar →';
   const mn=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   document.getElementById('sub-painel').textContent=mn[new Date().getMonth()]+' '+new Date().getFullYear();
+
+  // Gráfico 6 meses
+  const now=new Date();
+  const labels=[], brutos=[], liquidos=[];
+  for(let i=5;i>=0;i--){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const mm=pad(d.getMonth()+1)+'/'+d.getFullYear();
+    labels.push(mn[d.getMonth()].slice(0,3));
+    const dMes=dados.filter(x=>x.data&&x.data.endsWith(mm));
+    brutos.push(dMes.reduce((s,x)=>s+x.val,0));
+    liquidos.push(dMes.reduce((s,x)=>s+x.liq,0));
+  }
+  const cfgFat={type:'bar',data:{labels,datasets:[
+    {label:'Bruto',data:brutos,backgroundColor:'rgba(79,143,255,0.5)',borderColor:'rgba(79,143,255,1)',borderWidth:1,borderRadius:5},
+    {label:'Líquido',data:liquidos,backgroundColor:'rgba(52,211,153,0.5)',borderColor:'rgba(52,211,153,1)',borderWidth:1,borderRadius:5},
+  ]},options:{responsive:true,plugins:{legend:{labels:{color:'#6b7a99',font:{size:11}}}},scales:{x:{ticks:{color:'#6b7a99'},grid:{color:'rgba(255,255,255,0.05)'}},y:{ticks:{color:'#6b7a99',callback:v=>'R$'+v.toLocaleString('pt-BR')},grid:{color:'rgba(255,255,255,0.05)'}}}}};
+  const ctxFat=document.getElementById('chart-fat');
+  if(chartFat)chartFat.destroy();
+  chartFat=new Chart(ctxFat,cfgFat);
+
+  // Gráfico por tipo
+  const tipoMap={};
+  dM.forEach(d=>{tipoMap[d.proc]=(tipoMap[d.proc]||0)+1;});
+  const tipoLabels=Object.keys(tipoMap), tipoData=Object.values(tipoMap);
+  const cores=['#4f8fff','#34d399','#fbbf24','#f87171','#a78bfa','#2dd4bf','#fb923c'];
+  const ctxTipos=document.getElementById('chart-tipos');
+  if(chartTipos)chartTipos.destroy();
+  if(tipoLabels.length){
+    chartTipos=new Chart(ctxTipos,{type:'doughnut',data:{labels:tipoLabels,datasets:[{data:tipoData,backgroundColor:cores.slice(0,tipoLabels.length),borderWidth:0}]},options:{responsive:true,plugins:{legend:{position:'bottom',labels:{color:'#6b7a99',font:{size:10},padding:10}}}}});
+  } else {
+    ctxTipos.getContext('2d').clearRect(0,0,ctxTipos.width,ctxTipos.height);
+  }
+
+  // Lista recente
   const ul=document.getElementById('lista-painel');
   if(!dados.length){
     ul.innerHTML=`<div class="card" style="border-color:rgba(79,143,255,.3);background:rgba(79,143,255,.05);">
       <div style="font-size:15px;font-weight:600;margin-bottom:8px;">👋 Bem-vindo ao Implanto!</div>
       <div style="font-size:12px;color:var(--muted);line-height:1.8;margin-bottom:14px;">
-        Para começar, configure seu perfil:<br>
-        1️⃣ Vá em <b>Configurações</b> e informe seu % de repasse<br>
-        2️⃣ Cadastre seus procedimentos e valores<br>
-        3️⃣ Volte aqui e lance seu primeiro procedimento!
+        Para começar:<br>
+        1️⃣ <b>Configurações</b> → informe seu % de repasse<br>
+        2️⃣ <b>Novo Procedimento</b> → lance seu primeiro atendimento<br>
+        3️⃣ Acompanhe tudo aqui no dashboard!
       </div>
       <button class="btn blue" style="margin-top:0;" onclick="goTo('config',document.getElementById('di-config'),'Configurações','perfil e preferências')">Configurar agora →</button>
     </div>`;
     return;
   }
-  const rec=[...dados].slice(0,6);
-  ul.innerHTML=rec.map(d=>`<div class="card"><div class="card-row">
+  ul.innerHTML=[...dados].slice(0,6).map(d=>`<div class="card"><div class="card-row">
     <div><div class="card-title">${esc(d.pac)}</div><div class="card-sub">${esc(d.proc)} · ${d.data}</div></div>
     <div class="card-right"><div style="font-size:13px;font-weight:600;color:var(--accent)">${fmt(d.val)}</div><div style="font-size:11px;color:var(--green);margin-top:2px">+${fmt(d.liq)}</div></div>
   </div></div>`).join('');
+}
+
+// ── PDF EXPORT ────────────────────────────────────────────────────────────────
+function exportarPDF(){
+  const mn=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const now=new Date();
+  const mes=mesAtual();
+  const nomeMes=mn[now.getMonth()]+' '+now.getFullYear();
+  const dM=dados.filter(d=>d.data&&d.data.endsWith(mes));
+  const bruto=dM.reduce((s,d)=>s+d.val,0);
+  const liq=dM.reduce((s,d)=>s+d.liq,0);
+  const custo=dM.reduce((s,d)=>s+d.custo,0);
+  const nome=userMeta.nome||'Profissional';
+  const rep=userMeta.repasse?Math.round(getRepasse()*100)+'%':'–';
+
+  const linhas=dM.map(d=>`
+    <tr>
+      <td>${d.data}</td>
+      <td>${d.pac}</td>
+      <td>${d.proc}</td>
+      <td style="text-align:right">R$ ${d.val.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+      <td style="text-align:right;color:#ef4444">R$ ${d.custo.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+      <td style="text-align:right;color:#22c55e;font-weight:600">R$ ${d.liq.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+    </tr>`).join('');
+
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <style>
+    body{font-family:Arial,sans-serif;color:#1a1a1a;padding:40px;max-width:900px;margin:0 auto;}
+    h1{font-size:24px;color:#1d4ed8;margin-bottom:4px;}
+    .sub{color:#6b7280;font-size:14px;margin-bottom:32px;}
+    .metrics{display:flex;gap:20px;margin-bottom:32px;}
+    .metric{flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;}
+    .metric-lbl{font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+    .metric-val{font-size:22px;font-weight:700;}
+    .metric-val.b{color:#1d4ed8}.metric-val.g{color:#16a34a}.metric-val.r{color:#dc2626}
+    table{width:100%;border-collapse:collapse;font-size:13px;}
+    th{background:#1d4ed8;color:#fff;padding:10px 12px;text-align:left;}
+    td{padding:9px 12px;border-bottom:1px solid #f1f5f9;}
+    tr:nth-child(even) td{background:#f8fafc;}
+    .total-row td{font-weight:700;background:#eff6ff;border-top:2px solid #1d4ed8;}
+    .footer{margin-top:32px;font-size:11px;color:#9ca3af;text-align:center;}
+  </style></head><body>
+  <h1>🦷 Relatório Implanto</h1>
+  <div class="sub">${nome} · ${nomeMes} · Repasse: ${rep}</div>
+  <div class="metrics">
+    <div class="metric"><div class="metric-lbl">Total Bruto</div><div class="metric-val b">R$ ${bruto.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div></div>
+    <div class="metric"><div class="metric-lbl">Custos</div><div class="metric-val r">R$ ${custo.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div></div>
+    <div class="metric"><div class="metric-lbl">Líquido Total</div><div class="metric-val g">R$ ${liq.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div></div>
+    <div class="metric"><div class="metric-lbl">Procedimentos</div><div class="metric-val b">${dM.length}</div></div>
+  </div>
+  <table>
+    <thead><tr><th>Data</th><th>Paciente</th><th>Procedimento</th><th style="text-align:right">Bruto</th><th style="text-align:right">Custo</th><th style="text-align:right">Líquido</th></tr></thead>
+    <tbody>${linhas}
+    <tr class="total-row">
+      <td colspan="3">TOTAL</td>
+      <td style="text-align:right">R$ ${bruto.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+      <td style="text-align:right">R$ ${custo.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+      <td style="text-align:right">R$ ${liq.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+    </tr>
+    </tbody>
+  </table>
+  <div class="footer">Gerado em ${new Date().toLocaleString('pt-BR')} · Implanto App</div>
+  </body></html>`;
+
+  const w=window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(()=>w.print(),500);
+}
+
+// ── LISTA PROCS NA ABA LANCAR ─────────────────────────────────────────────────
+function renderProcsLancar(){
+  const el=document.getElementById('lista-procs-lancar');
+  if(!el)return;
+  // Datalist para autocomplete de paciente
+  const dl=document.getElementById('dl-pacs-lancar');
+  if(dl){
+    const pacs=[...new Set(dados.map(d=>d.pac))].sort();
+    dl.innerHTML=pacs.map(p=>`<option value="${esc(p)}">`).join('');
+  }
+  if(!customProcs.length){
+    el.innerHTML='<div class="empty" style="padding:16px 0;">Nenhum procedimento cadastrado.<br>Toque em ⚙️ Gerenciar acima.</div>';
+    return;
+  }
+  el.innerHTML=customProcs.map(p=>`
+    <div class="card" style="cursor:pointer;" onclick="selecionarProc('${esc(p.nome)}')">
+      <div class="card-row">
+        <div style="flex:1">
+          <div class="card-title">${esc(p.nome)}</div>
+          <div class="card-sub">Valor: ${fmt(p.val)} · Custo: ${fmt(p.custo)}</div>
+        </div>
+        <div style="color:var(--green);font-weight:700;font-size:13px;">+${fmt(p.val*getRepasse()-p.custo)}<br><span style="font-size:10px;color:var(--muted);font-weight:400;">líquido</span></div>
+      </div>
+    </div>`).join('');
+}
+function selecionarProc(nome){
+  const sel=document.getElementById('inp-proc');
+  sel.value=nome;
+  document.getElementById('manual-wrap').style.display='none';
+  calcPrev();
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 
 // ── LANÇAR ───────────────────────────────────────────────────────────────────
@@ -1351,7 +1515,7 @@ function renderContas(){
 async function salvarConta(){
   const desc=document.getElementById('ct-desc').value.trim(),val=parseFloat(document.getElementById('ct-val').value)||0;
   if(!desc){alert('Informe a descrição.');return;}if(!val){alert('Informe o valor.');return;}
-  const obj={tipo:document.getElementById('ct-tipo').value,desc,val,data:document.getElementById('ct-data').value||hoje(),cat:document.getElementById('ct-cat').value,status:document.getElementById('ct-status').value,obs:document.getElementById('ct-obs').value.trim(),user_id:currentUser.id};
+  const obj={tipo:document.getElementById('ct-tipo').value,'desc':desc,val,data:document.getElementById('ct-data').value||hoje(),cat:document.getElementById('ct-cat').value,status:document.getElementById('ct-status').value,obs:document.getElementById('ct-obs').value.trim(),user_id:currentUser.id};
   const {data,error}=await sb.from('contas').insert(obj).select().single();
   if(error){showToast('Erro ao salvar.','var(--red)');return;}
   contas.unshift(data);fecharModal('conta');showToast('✓ Conta salva!');renderContas();
