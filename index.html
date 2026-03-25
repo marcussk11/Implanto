@@ -629,13 +629,15 @@ input::placeholder,textarea::placeholder{color:var(--muted);}
     </div>
     <div id="lista-procs-custom" style="margin-bottom:14px;"></div>
     <div style="background:var(--s2);border:1px solid var(--border2);border-radius:12px;padding:13px;">
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;font-weight:500;">Novo procedimento</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;font-weight:500;" id="cp-form-titulo">Novo procedimento</div>
+      <input type="hidden" id="cp-edit-id">
       <div class="form-group"><label class="form-label">Nome</label><input type="text" id="cp-nome" placeholder="Ex: Enxerto ósseo"></div>
       <div class="row2">
         <div class="form-group"><label class="form-label">Valor (R$)</label><input type="number" id="cp-val" placeholder="0"></div>
         <div class="form-group"><label class="form-label">Custo (R$)</label><input type="number" id="cp-custo" placeholder="0"></div>
       </div>
-      <button class="btn blue" onclick="adicionarProcCustom()">+ Adicionar ✓</button>
+      <button class="btn blue" id="cp-save-btn" onclick="adicionarProcCustom()">+ Adicionar ✓</button>
+      <button class="btn ghost" id="cp-cancel-btn" style="display:none;" onclick="cancelarEdicaoProc()">Cancelar</button>
     </div>
     <button class="btn ghost" onclick="fecharModal('gerenciarProcs')">Fechar</button>
   </div>
@@ -848,7 +850,13 @@ async function fazerLogout(){
 }
 
 sb.auth.onAuthStateChange(async (event, session) => {
-  if(session?.user){
+  if(event === 'USER_UPDATED' && session?.user){
+    // Apenas atualiza referência local — não recarrega dados (evita sobrescrever localStorage)
+    currentUser = session.user;
+    userMeta = session.user.user_metadata || {};
+    return;
+  }
+  if(session?.user && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')){
     currentUser = session.user;
     userMeta = session.user.user_metadata || {};
     document.getElementById('auth-screen').classList.add('hidden');
@@ -943,9 +951,7 @@ function abrirModal(tipo,extra){
     document.getElementById('ov-conta').classList.add('open');
   } else if(tipo==='gerenciarProcs'){
     renderProcCustomList();
-    document.getElementById('cp-nome').value='';
-    document.getElementById('cp-val').value='';
-    document.getElementById('cp-custo').value='';
+    cancelarEdicaoProc();
     document.getElementById('ov-gerenciarProcs').classList.add('open');
   }
 }
@@ -967,26 +973,59 @@ function renderProcCustomList(){
     el.innerHTML='<div class="empty" style="padding:20px 0;">Nenhum procedimento cadastrado ainda.<br>Adicione abaixo! 👇</div>';return;
   }
   el.innerHTML=customProcs.map(p=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);">
-    <div><div style="font-size:13px;font-weight:500;">${esc(p.nome)}</div>
+    <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${esc(p.nome)}</div>
     <div style="font-size:11px;color:var(--muted);">Valor: R$ ${Number(p.val).toLocaleString('pt-BR')} · Custo: R$ ${Number(p.custo).toLocaleString('pt-BR')}</div></div>
-    <button onclick="removerProcCustom(${p.id})" style="background:none;border:none;color:var(--red);font-size:20px;cursor:pointer;padding:0 8px;">×</button>
+    <div style="display:flex;gap:4px;flex-shrink:0;">
+      <button onclick="editarProcCustom(${p.id})" style="background:var(--s1);border:1px solid var(--border2);border-radius:7px;color:var(--accent);font-size:12px;cursor:pointer;padding:4px 8px;">✏️</button>
+      <button onclick="removerProcCustom(${p.id})" style="background:none;border:none;color:var(--red);font-size:20px;cursor:pointer;padding:0 8px;">×</button>
+    </div>
   </div>`).join('');
 }
 async function adicionarProcCustom(){
   const nome=document.getElementById('cp-nome').value.trim();
   const val=parseFloat(document.getElementById('cp-val').value)||0;
   const custo=parseFloat(document.getElementById('cp-custo').value)||0;
-  if(!nome){alert('Informe o nome.');return;}
-  const item=await salvarItem('custom_procs',{nome,val,custo});
-  customProcs.push(item);
-  document.getElementById('cp-nome').value='';document.getElementById('cp-val').value='';document.getElementById('cp-custo').value='';
-  buildProcOptions('inp-proc');buildProcOptions('ep-proc',false);
-  renderProcCustomList();showToast('✓ Procedimento adicionado!');renderProcsLancar();
+  if(!nome){showToast('Informe o nome.','var(--red)');return;}
+  const editId=parseInt(document.getElementById('cp-edit-id').value)||0;
+  if(editId){
+    await atualizarItem('custom_procs',editId,{nome,val,custo});
+    const p=customProcs.find(x=>x.id===editId);if(p)Object.assign(p,{nome,val,custo});
+    cancelarEdicaoProc();
+    buildProcOptions('inp-proc');buildProcOptions('ep-proc',false);
+    renderProcCustomList();renderProcsLancar();showToast('✓ Procedimento atualizado!');
+  } else {
+    const item=await salvarItem('custom_procs',{nome,val,custo});
+    customProcs.push(item);
+    document.getElementById('cp-nome').value='';document.getElementById('cp-val').value='';document.getElementById('cp-custo').value='';
+    buildProcOptions('inp-proc');buildProcOptions('ep-proc',false);
+    renderProcCustomList();showToast('✓ Procedimento adicionado!');renderProcsLancar();
+  }
+}
+function editarProcCustom(id){
+  const p=customProcs.find(x=>x.id===id);if(!p)return;
+  document.getElementById('cp-edit-id').value=id;
+  document.getElementById('cp-nome').value=p.nome;
+  document.getElementById('cp-val').value=p.val;
+  document.getElementById('cp-custo').value=p.custo;
+  document.getElementById('cp-form-titulo').textContent='Editar procedimento';
+  document.getElementById('cp-save-btn').textContent='Salvar alterações ✓';
+  document.getElementById('cp-cancel-btn').style.display='block';
+  document.getElementById('cp-nome').focus();
+}
+function cancelarEdicaoProc(){
+  document.getElementById('cp-edit-id').value='';
+  document.getElementById('cp-nome').value='';
+  document.getElementById('cp-val').value='';
+  document.getElementById('cp-custo').value='';
+  document.getElementById('cp-form-titulo').textContent='Novo procedimento';
+  document.getElementById('cp-save-btn').textContent='+ Adicionar ✓';
+  document.getElementById('cp-cancel-btn').style.display='none';
 }
 async function removerProcCustom(id){
   if(!confirm('Remover procedimento?'))return;
   await deletarItem('custom_procs',id);
   customProcs=customProcs.filter(p=>p.id!==id);
+  if(parseInt(document.getElementById('cp-edit-id').value)===id)cancelarEdicaoProc();
   buildProcOptions('inp-proc');buildProcOptions('ep-proc',false);
   renderProcCustomList();renderProcsLancar();showToast('Removido.','var(--red)');
 }
