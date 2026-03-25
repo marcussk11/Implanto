@@ -144,6 +144,14 @@ input::placeholder,textarea::placeholder{color:var(--muted);}
 .tl-detalhe{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.6;}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
 @keyframes spin{to{transform:rotate(360deg);}}
+/* ── EDIT/SAVE IMPROVEMENTS ── */
+.btn:disabled{opacity:.55;cursor:not-allowed;}
+.btn.saving{position:relative;opacity:.8;pointer-events:none;}
+.btn.saving::after{content:'';display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin-left:8px;vertical-align:middle;}
+.btn.teal.saving::after,.btn.green.saving::after{border-top-color:#0d1117;border-color:rgba(0,0,0,.25);border-top-color:#0d1117;}
+.form-error{font-size:12px;color:var(--red);background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.25);border-radius:9px;padding:9px 12px;margin-bottom:12px;display:none;}
+.form-error.show{display:block;}
+.nota-edit-btn{position:absolute;top:9px;right:34px;background:none;border:none;cursor:pointer;color:var(--muted);font-size:13px;padding:2px 5px;line-height:1;}
 </style>
 </head>
 <body>
@@ -457,6 +465,7 @@ input::placeholder,textarea::placeholder{color:var(--muted);}
       <button class="modal-x" onclick="fecharModal('editproc')">×</button>
     </div>
     <input type="hidden" id="ep-id">
+    <div id="editproc-error" class="form-error"></div>
     <div class="form-group"><label class="form-label">Paciente</label><input type="text" id="ep-pac" placeholder="Nome do paciente"></div>
     <div class="form-group"><label class="form-label">Procedimento</label>
       <select id="ep-proc" onchange="onEpChange()"><option value="">Selecione...</option></select>
@@ -470,7 +479,7 @@ input::placeholder,textarea::placeholder{color:var(--muted);}
       <div class="pv-row"><span class="pv-key">Repasse</span><span class="pv-val" id="ep-pv-r">–</span></div>
       <div class="pv-row"><span class="pv-key" style="font-weight:600;color:var(--text)">Líquido</span><span class="pv-val" id="ep-pv-l" style="color:var(--green);font-size:16px;">–</span></div>
     </div>
-    <button class="btn blue" onclick="salvarEdicaoProc()">Salvar alterações ✓</button>
+    <button class="btn blue" id="editproc-save-btn" onclick="salvarEdicaoProc()">Salvar alterações ✓</button>
     <button class="btn ghost" onclick="fecharModal('editproc')">Cancelar</button>
   </div>
 </div>
@@ -479,9 +488,11 @@ input::placeholder,textarea::placeholder{color:var(--muted);}
 <div class="overlay" id="ov-nota">
   <div class="modal">
     <div class="modal-hd">
-      <div><div class="modal-title" id="nota-titulo">Nova nota</div><div class="modal-sub">Registre as observações do atendimento</div></div>
+      <div><div class="modal-title" id="nota-titulo">Nova nota</div><div class="modal-sub" id="nota-sub">Registre as observações do atendimento</div></div>
       <button class="modal-x" onclick="fecharModal('nota')">×</button>
     </div>
+    <input type="hidden" id="nota-edit-id">
+    <div id="nota-error" class="form-error"></div>
     <div class="form-group"><label class="form-label">Paciente</label><input type="text" id="nota-pac" placeholder="Nome do paciente" list="dl-pacs"><datalist id="dl-pacs"></datalist></div>
     <div class="form-group"><label class="form-label">Procedimento</label>
       <select id="nota-proc">
@@ -507,7 +518,7 @@ input::placeholder,textarea::placeholder{color:var(--muted);}
       </div>
       <textarea id="nota-txt" rows="5" placeholder="Observações, evolução, próximos passos... ou use o microfone 🎙️"></textarea>
     </div>
-    <button class="btn purple" onclick="salvarNota()">Salvar nota ✓</button>
+    <button class="btn purple" id="nota-save-btn" onclick="salvarNota()">Salvar nota ✓</button>
     <button class="btn ghost" onclick="fecharModal('nota')">Cancelar</button>
   </div>
 </div>
@@ -520,6 +531,7 @@ input::placeholder,textarea::placeholder{color:var(--muted);}
       <button class="modal-x" onclick="fecharModal('estoque')">×</button>
     </div>
     <input type="hidden" id="estq-edit-id">
+    <div id="estoque-error" class="form-error"></div>
     <div class="form-group"><label class="form-label">Nome do item</label><input type="text" id="estq-nome" placeholder="Ex: Implante 4.0 x 13mm"></div>
     <div class="form-group"><label class="form-label">Categoria</label>
       <select id="estq-cat">
@@ -532,7 +544,7 @@ input::placeholder,textarea::placeholder{color:var(--muted);}
       <div class="form-group"><label class="form-label">Qtd. mínima</label><input type="number" id="estq-min" placeholder="2" min="0"></div>
     </div>
     <div class="form-group"><label class="form-label">Fornecedor (opcional)</label><input type="text" id="estq-forn" placeholder="Nome do fornecedor"></div>
-    <button class="btn teal" onclick="salvarEstoque()">Salvar item ✓</button>
+    <button class="btn teal" id="estoque-save-btn" onclick="salvarEstoque()">Salvar item ✓</button>
     <button class="btn ghost" onclick="fecharModal('estoque')">Cancelar</button>
   </div>
 </div>
@@ -541,10 +553,11 @@ input::placeholder,textarea::placeholder{color:var(--muted);}
 <div class="overlay" id="ov-protese">
   <div class="modal">
     <div class="modal-hd">
-      <div><div class="modal-title">Trabalho protético</div><div class="modal-sub">Registrar envio ao laboratório</div></div>
+      <div><div class="modal-title" id="protese-titulo">Trabalho protético</div><div class="modal-sub" id="protese-sub">Registrar envio ao laboratório</div></div>
       <button class="modal-x" onclick="fecharModal('protese')">×</button>
     </div>
     <input type="hidden" id="pr-edit-id">
+    <div id="protese-error" class="form-error"></div>
     <div class="form-group"><label class="form-label">Paciente</label><input type="text" id="pr-pac" placeholder="Nome do paciente" list="dl-pacs2"><datalist id="dl-pacs2"></datalist></div>
     <div class="form-group"><label class="form-label">Tipo de prótese</label>
       <select id="pr-tipo">
@@ -568,7 +581,7 @@ input::placeholder,textarea::placeholder{color:var(--muted);}
       </select>
     </div>
     <div class="form-group"><label class="form-label">Observações</label><textarea id="pr-obs" rows="3" placeholder="Cor, tamanho, orientações especiais..."></textarea></div>
-    <button class="btn teal" onclick="salvarProtese()">Salvar trabalho ✓</button>
+    <button class="btn teal" id="protese-save-btn" onclick="salvarProtese()">Salvar trabalho ✓</button>
     <button class="btn ghost" onclick="fecharModal('protese')">Cancelar</button>
   </div>
 </div>
@@ -581,6 +594,8 @@ input::placeholder,textarea::placeholder{color:var(--muted);}
       <button class="modal-x" onclick="fecharModal('conta')">×</button>
     </div>
     <input type="hidden" id="ct-tipo">
+    <input type="hidden" id="ct-edit-id">
+    <div id="conta-error" class="form-error"></div>
     <div class="form-group"><label class="form-label">Descrição</label><input type="text" id="ct-desc" placeholder="Ex: Pagamento Odete, Aluguel, Material..."></div>
     <div class="row2">
       <div class="form-group"><label class="form-label">Valor (R$)</label><input type="number" id="ct-val" placeholder="0"></div>
@@ -600,7 +615,7 @@ input::placeholder,textarea::placeholder{color:var(--muted);}
       </select>
     </div>
     <div class="form-group"><label class="form-label">Observações</label><input type="text" id="ct-obs" placeholder="Opcional..."></div>
-    <button class="btn green" id="ct-save-btn" onclick="salvarConta()">Salvar ✓</button>
+    <button class="btn green" id="ct-save-btn" onclick="salvarConta()">Salvar conta ✓</button>
     <button class="btn ghost" onclick="fecharModal('conta')">Cancelar</button>
   </div>
 </div>
@@ -881,11 +896,15 @@ function abrirModal(tipo,extra){
   const pacs=[...new Set([...dados.map(d=>d.pac),...notas.map(n=>n.pac)])].sort();
   ['dl-pacs','dl-pacs2'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=pacs.map(p=>`<option value="${esc(p)}">`).join('');});
   if(tipo==='nota'){
+    document.getElementById('nota-edit-id').value='';
     document.getElementById('nota-pac').value=extra||'';
     document.getElementById('nota-proc').value='';
     document.getElementById('nota-data').value=hoje();
     document.getElementById('nota-txt').value='';
     document.getElementById('nota-titulo').textContent=extra?`Nova nota — ${extra}`:'Nova nota';
+    document.getElementById('nota-sub').textContent='Registre as observações do atendimento';
+    document.getElementById('nota-save-btn').textContent='Salvar nota ✓';
+    document.getElementById('nota-error').className='form-error';
     document.getElementById('ov-nota').classList.add('open');
   } else if(tipo==='estoque'){
     document.getElementById('estq-edit-id').value='';
@@ -894,6 +913,7 @@ function abrirModal(tipo,extra){
     document.getElementById('estq-min').value='2';
     document.getElementById('estq-forn').value='';
     document.getElementById('estq-titulo').textContent='Novo item';
+    document.getElementById('estoque-error').className='form-error';
     document.getElementById('ov-estoque').classList.add('open');
   } else if(tipo==='protese'){
     document.getElementById('pr-edit-id').value='';
@@ -902,8 +922,13 @@ function abrirModal(tipo,extra){
     document.getElementById('pr-env').value=hoje();
     document.getElementById('pr-prev').value='';
     document.getElementById('pr-status').value='lab';
+    document.getElementById('protese-titulo').textContent='Trabalho protético';
+    document.getElementById('protese-sub').textContent='Registrar envio ao laboratório';
+    document.getElementById('protese-save-btn').textContent='Salvar trabalho ✓';
+    document.getElementById('protese-error').className='form-error';
     document.getElementById('ov-protese').classList.add('open');
   } else if(tipo==='conta'){
+    document.getElementById('ct-edit-id').value='';
     document.getElementById('ct-tipo').value=extra;
     ['ct-desc','ct-val','ct-obs'].forEach(i=>document.getElementById(i).value='');
     document.getElementById('ct-data').value=hoje();
@@ -911,8 +936,10 @@ function abrirModal(tipo,extra){
     const rec=extra==='receita';
     document.getElementById('ct-titulo').textContent=rec?'Nova receita':'Nova despesa';
     document.getElementById('ct-sub').textContent=rec?'Registrar entrada financeira':'Registrar saída financeira';
+    document.getElementById('ct-save-btn').textContent='Salvar conta ✓';
     document.getElementById('ct-save-btn').className='btn '+(rec?'green':'ghost');
     document.getElementById('ct-save-btn').style.cssText=rec?'':'border:1px solid rgba(248,113,113,.3);color:var(--red);margin-top:4px;';
+    document.getElementById('conta-error').className='form-error';
     document.getElementById('ov-conta').classList.add('open');
   } else if(tipo==='gerenciarProcs'){
     renderProcCustomList();
@@ -1207,19 +1234,24 @@ function calcEpPrev(){
   document.getElementById('ep-pv-l').textContent=fmt(val*getRepasse()-custo);
 }
 async function salvarEdicaoProc(){
+  const errEl=document.getElementById('editproc-error');
+  const btn=document.getElementById('editproc-save-btn');
+  errEl.className='form-error';
   const id=parseInt(document.getElementById('ep-id').value);
   const pac=document.getElementById('ep-pac').value.trim();
   const val=parseFloat(document.getElementById('ep-val').value)||0;
   const custo=parseFloat(document.getElementById('ep-custo').value)||0;
-  if(!pac){alert('Informe o paciente.');return;}
-  if(!val){alert('Informe o valor.');return;}
+  if(!pac){errEl.textContent='Informe o nome do paciente.';errEl.className='form-error show';return;}
+  if(!val){errEl.textContent='Informe o valor cobrado.';errEl.className='form-error show';return;}
   const sel=document.getElementById('ep-proc');
   const proc=sel.value==='custom'?'Outro':sel.value;
   const liq=val*getRepasse()-custo;
   const data_val=document.getElementById('ep-data').value;
+  btn.classList.add('saving');btn.disabled=true;
   await atualizarItem('procedimentos',id,{pac,proc,val,custo,liq,data:data_val});
   const d=dados.find(x=>x.id===id);
   if(d)Object.assign(d,{pac,proc,val,custo,liq,data:data_val});
+  btn.classList.remove('saving');btn.disabled=false;
   fecharModal('editproc');showToast('✓ Procedimento atualizado!');renderHist();renderPainel();
 }
 async function delProc(id){
@@ -1352,6 +1384,7 @@ function renderDiario(){
   el.innerHTML=pacs.map(pac=>{
     const ns=(map[pac]||[]).sort((a,b)=>b.id-a.id);
     const notasHtml=ns.length?ns.map(n=>`<div class="nota-item">
+      <button class="nota-edit-btn" onclick="editarNota(${n.id})" title="Editar nota">✏️</button>
       <button class="nota-del" onclick="delNota(${n.id})">×</button>
       <div class="nota-data">${n.data}${n.proc?' · <span style="color:var(--accent)">'+esc(n.proc)+'</span>':''}</div>
       <div class="nota-txt">${esc(n.txt)}</div>
@@ -1366,13 +1399,40 @@ function renderDiario(){
   }).join('');
 }
 async function salvarNota(){
+  const errEl=document.getElementById('nota-error');
+  const btn=document.getElementById('nota-save-btn');
+  errEl.className='form-error';
   const pac=document.getElementById('nota-pac').value.trim();
   const txt=document.getElementById('nota-txt').value.trim();
-  if(!pac){alert('Informe o paciente.');return;}
-  if(!txt){alert('Escreva as anotações.');return;}
+  if(!pac){errEl.textContent='Informe o nome do paciente.';errEl.className='form-error show';return;}
+  if(!txt){errEl.textContent='Escreva as anotações clínicas.';errEl.className='form-error show';return;}
+  const editId=parseInt(document.getElementById('nota-edit-id').value)||0;
   const obj={pac,proc:document.getElementById('nota-proc').value,data:document.getElementById('nota-data').value||hoje(),txt};
-  const item=await salvarItem('notas',obj);
-  notas.unshift(item);fecharModal('nota');showToast('✓ Nota salva!');renderDiario();
+  btn.classList.add('saving');btn.disabled=true;
+  if(editId){
+    await atualizarItem('notas',editId,obj);
+    const n=notas.find(x=>x.id===editId);if(n)Object.assign(n,obj);
+    btn.classList.remove('saving');btn.disabled=false;
+    fecharModal('nota');showToast('✓ Nota atualizada!');renderDiario();
+  } else {
+    const item=await salvarItem('notas',obj);
+    notas.unshift(item);
+    btn.classList.remove('saving');btn.disabled=false;
+    fecharModal('nota');showToast('✓ Nota salva!');renderDiario();
+  }
+}
+function editarNota(id){
+  const n=notas.find(x=>x.id===id);if(!n)return;
+  document.getElementById('nota-edit-id').value=id;
+  document.getElementById('nota-pac').value=n.pac;
+  document.getElementById('nota-proc').value=n.proc||'';
+  document.getElementById('nota-data').value=n.data||'';
+  document.getElementById('nota-txt').value=n.txt||'';
+  document.getElementById('nota-titulo').textContent='Editar nota';
+  document.getElementById('nota-sub').textContent='Altere os dados e salve';
+  document.getElementById('nota-save-btn').textContent='Salvar alterações ✓';
+  document.getElementById('nota-error').className='form-error';
+  document.getElementById('ov-nota').classList.add('open');
 }
 async function delNota(id){
   if(!confirm('Excluir esta nota?'))return;
@@ -1458,10 +1518,14 @@ async function ajustarQty(id,delta){
   e.qty=newQty;renderEstoque();
 }
 async function salvarEstoque(){
+  const errEl=document.getElementById('estoque-error');
+  const btn=document.getElementById('estoque-save-btn');
+  errEl.className='form-error';
   const nome=document.getElementById('estq-nome').value.trim();
-  if(!nome){alert('Informe o nome do item.');return;}
+  if(!nome){errEl.textContent='Informe o nome do item.';errEl.className='form-error show';return;}
   const editId=parseInt(document.getElementById('estq-edit-id').value)||0;
   const obj={nome,cat:document.getElementById('estq-cat').value,qty:parseInt(document.getElementById('estq-qty').value)||0,min:parseInt(document.getElementById('estq-min').value)||0,forn:document.getElementById('estq-forn').value.trim()};
+  btn.classList.add('saving');btn.disabled=true;
   if(editId){
     await atualizarItem('estoque',editId,obj);
     const e=estq.find(x=>x.id===editId);if(e)Object.assign(e,obj);
@@ -1469,6 +1533,7 @@ async function salvarEstoque(){
     const item=await salvarItem('estoque',obj);
     estq.push(item);
   }
+  btn.classList.remove('saving');btn.disabled=false;
   fecharModal('estoque');showToast('✓ Item salvo!');renderEstoque();
 }
 function editarEstoque(id){
@@ -1480,6 +1545,7 @@ function editarEstoque(id){
   document.getElementById('estq-min').value=e.min;
   document.getElementById('estq-forn').value=e.forn||'';
   document.getElementById('estq-titulo').textContent='Editar item';
+  document.getElementById('estoque-error').className='form-error';
   document.getElementById('ov-estoque').classList.add('open');
 }
 async function delEstoque(id){
@@ -1523,10 +1589,15 @@ async function mudarStatusProt(id,status){
   renderProtese();showToast('Status atualizado!');
 }
 async function salvarProtese(){
+  const errEl=document.getElementById('protese-error');
+  const btn=document.getElementById('protese-save-btn');
+  errEl.className='form-error';
   const pac=document.getElementById('pr-pac').value.trim(),lab=document.getElementById('pr-lab').value.trim();
-  if(!pac){alert('Informe o paciente.');return;}if(!lab){alert('Informe o laboratório.');return;}
+  if(!pac){errEl.textContent='Informe o nome do paciente.';errEl.className='form-error show';return;}
+  if(!lab){errEl.textContent='Informe o laboratório.';errEl.className='form-error show';return;}
   const editId=parseInt(document.getElementById('pr-edit-id').value)||0;
   const obj={pac,tipo:document.getElementById('pr-tipo').value,lab,env:document.getElementById('pr-env').value,prev:document.getElementById('pr-prev').value,val:parseFloat(document.getElementById('pr-val').value)||0,status:document.getElementById('pr-status').value,obs:document.getElementById('pr-obs').value.trim()};
+  btn.classList.add('saving');btn.disabled=true;
   if(editId){
     await atualizarItem('proteses',editId,obj);
     const p=prots.find(x=>x.id===editId);if(p)Object.assign(p,obj);
@@ -1534,6 +1605,7 @@ async function salvarProtese(){
     const item=await salvarItem('proteses',obj);
     prots.push(item);
   }
+  btn.classList.remove('saving');btn.disabled=false;
   fecharModal('protese');showToast('✓ Trabalho salvo!');renderProtese();
 }
 function editarProt(id){
@@ -1543,6 +1615,10 @@ function editarProt(id){
   document.getElementById('pr-lab').value=p.lab;document.getElementById('pr-env').value=p.env||'';
   document.getElementById('pr-prev').value=p.prev||'';document.getElementById('pr-val').value=p.val||'';
   document.getElementById('pr-status').value=p.status;document.getElementById('pr-obs').value=p.obs||'';
+  document.getElementById('protese-titulo').textContent='Editar trabalho';
+  document.getElementById('protese-sub').textContent='Altere os dados e salve';
+  document.getElementById('protese-save-btn').textContent='Salvar alterações ✓';
+  document.getElementById('protese-error').className='form-error';
   document.getElementById('ov-protese').classList.add('open');
 }
 async function delProt(id){
@@ -1569,16 +1645,53 @@ function renderContas(){
       <div class="card-sub">${c.cat} · ${c.data}${c.obs?' · '+esc(c.obs):''}</div></div>
     <div class="card-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
       <div style="font-size:15px;font-weight:600;color:${c.tipo==='receita'?'var(--green)':'var(--red)'}">${c.tipo==='receita'?'+':'−'}${fmt(c.val)}</div>
-      <button class="qty-btn" style="font-size:11px;padding:5px 10px;color:var(--red);" onclick="delConta(${c.id})">🗑</button>
+      <div style="display:flex;gap:6px;">
+        <button class="qty-btn" style="font-size:11px;padding:5px 10px;color:var(--accent);" onclick="editarConta(${c.id})">✏️</button>
+        <button class="qty-btn" style="font-size:11px;padding:5px 10px;color:var(--red);" onclick="delConta(${c.id})">🗑</button>
+      </div>
     </div>
   </div></div>`).join('');
 }
 async function salvarConta(){
+  const errEl=document.getElementById('conta-error');
+  const btn=document.getElementById('ct-save-btn');
+  errEl.className='form-error';
   const descVal=document.getElementById('ct-desc').value.trim(),val=parseFloat(document.getElementById('ct-val').value)||0;
-  if(!descVal){alert('Informe a descrição.');return;}if(!val){alert('Informe o valor.');return;}
+  if(!descVal){errEl.textContent='Informe a descrição.';errEl.className='form-error show';return;}
+  if(!val){errEl.textContent='Informe o valor.';errEl.className='form-error show';return;}
+  const editId=parseInt(document.getElementById('ct-edit-id').value)||0;
   const obj={tipo:document.getElementById('ct-tipo').value,desc:descVal,val,data:document.getElementById('ct-data').value||hoje(),cat:document.getElementById('ct-cat').value,status:document.getElementById('ct-status').value,obs:document.getElementById('ct-obs').value.trim()};
-  const item=await salvarItem('contas',obj);
-  contas.unshift(item);fecharModal('conta');showToast('✓ Conta salva!');renderContas();
+  btn.classList.add('saving');btn.disabled=true;
+  if(editId){
+    await atualizarItem('contas',editId,obj);
+    const c=contas.find(x=>x.id===editId);if(c)Object.assign(c,obj);
+    btn.classList.remove('saving');btn.disabled=false;
+    fecharModal('conta');showToast('✓ Conta atualizada!');renderContas();
+  } else {
+    const item=await salvarItem('contas',obj);
+    contas.unshift(item);
+    btn.classList.remove('saving');btn.disabled=false;
+    fecharModal('conta');showToast('✓ Conta salva!');renderContas();
+  }
+}
+function editarConta(id){
+  const c=contas.find(x=>x.id===id);if(!c)return;
+  document.getElementById('ct-edit-id').value=id;
+  document.getElementById('ct-tipo').value=c.tipo;
+  document.getElementById('ct-desc').value=c.desc||'';
+  document.getElementById('ct-val').value=c.val||'';
+  document.getElementById('ct-data').value=c.data||'';
+  document.getElementById('ct-cat').value=c.cat||'Outros';
+  document.getElementById('ct-status').value=c.status||'pago';
+  document.getElementById('ct-obs').value=c.obs||'';
+  const rec=c.tipo==='receita';
+  document.getElementById('ct-titulo').textContent=rec?'Editar receita':'Editar despesa';
+  document.getElementById('ct-sub').textContent='Altere os dados e salve';
+  document.getElementById('ct-save-btn').textContent='Salvar alterações ✓';
+  document.getElementById('ct-save-btn').className='btn '+(rec?'green':'ghost');
+  document.getElementById('ct-save-btn').style.cssText=rec?'':'border:1px solid rgba(248,113,113,.3);color:var(--red);margin-top:4px;';
+  document.getElementById('conta-error').className='form-error';
+  document.getElementById('ov-conta').classList.add('open');
 }
 async function delConta(id){
   if(!confirm('Excluir?'))return;
@@ -1619,6 +1732,21 @@ function atualizarSaudacao(){
   const nome=userMeta.nome||'Marcus';
   document.getElementById('saudacao').textContent=saudacao()+', '+nome+'! 👋';
 }
+
+// ── CTRL+ENTER TO SAVE ───────────────────────────────────────────────────────
+document.addEventListener('keydown',function(e){
+  if(!(e.ctrlKey||e.metaKey)||e.key!=='Enter')return;
+  const map={
+    'ov-editproc':salvarEdicaoProc,
+    'ov-nota':salvarNota,
+    'ov-estoque':salvarEstoque,
+    'ov-protese':salvarProtese,
+    'ov-conta':salvarConta,
+  };
+  for(const [id,fn] of Object.entries(map)){
+    if(document.getElementById(id)?.classList.contains('open')){e.preventDefault();fn();break;}
+  }
+});
 </script>
 </body>
 </html>
