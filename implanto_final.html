@@ -1,0 +1,1640 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Implanto</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0d1117;--s1:#161b27;--s2:#1c2235;--s3:#222840;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.14);
+  --accent:#4f8fff;--green:#34d399;--amber:#fbbf24;--red:#f87171;
+  --purple:#a78bfa;--teal:#2dd4bf;
+  --text:#e8eeff;--muted:#6b7a99;
+}
+body{background:var(--bg);font-family:'Sora',sans-serif;color:var(--text);min-height:100vh;}
+/* ── AUTH SCREEN ── */
+#auth-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px;}
+#auth-screen.hidden{display:none;}
+#app-screen{display:none;}
+#app-screen.visible{display:block;}
+.auth-logo{font-size:42px;margin-bottom:8px;}
+.auth-title{font-size:22px;font-weight:600;margin-bottom:4px;}
+.auth-sub{font-size:13px;color:var(--muted);margin-bottom:32px;}
+.auth-card{background:var(--s1);border:1px solid var(--border2);border-radius:18px;padding:24px;width:100%;max-width:360px;}
+.auth-tabs{display:flex;gap:0;margin-bottom:20px;background:var(--s2);border-radius:10px;padding:3px;}
+.auth-tab{flex:1;padding:9px;border:none;background:none;font-family:'Sora',sans-serif;font-size:13px;font-weight:600;color:var(--muted);border-radius:8px;cursor:pointer;}
+.auth-tab.active{background:var(--accent);color:#fff;}
+/* ── TOPBAR ── */
+.topbar{position:fixed;top:0;left:0;right:0;height:56px;background:var(--s1);border-bottom:1px solid var(--border2);display:flex;align-items:center;justify-content:space-between;padding:0 16px;z-index:150;}
+.topbar-title{font-size:16px;font-weight:600;color:var(--text);}
+.topbar-sub{font-size:11px;color:var(--muted);margin-top:1px;}
+.menu-btn{width:40px;height:40px;border-radius:12px;background:var(--s2);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+.menu-btn svg{width:18px;height:18px;fill:none;stroke:var(--text);stroke-width:2;}
+/* ── DRAWER ── */
+.drawer-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:250;}
+.drawer-overlay.open{display:block;}
+.drawer{position:fixed;top:0;right:-280px;width:270px;height:100%;background:var(--s1);border-left:1px solid var(--border2);z-index:260;transition:right .25s cubic-bezier(.4,0,.2,1);overflow-y:auto;padding-bottom:30px;}
+.drawer.open{right:0;}
+.drawer-hd{padding:20px 18px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.drawer-logo{font-size:17px;font-weight:600;}
+.drawer-x{background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;line-height:1;}
+.drawer-section{padding:10px 10px 4px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;}
+.drawer-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:10px;margin:2px 8px;cursor:pointer;transition:background .15s;border:none;background:none;width:calc(100% - 16px);text-align:left;font-family:'Sora',sans-serif;font-size:14px;color:var(--muted);}
+.drawer-item svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;flex-shrink:0;}
+.drawer-item.active{background:rgba(79,143,255,.12);color:var(--accent);}
+/* ── PAGES ── */
+.page{display:none;padding:72px 16px 24px;}
+.page.active{display:block;}
+.pg-title{font-size:20px;font-weight:600;margin-bottom:3px;}
+.pg-sub{font-size:12px;color:var(--muted);margin-bottom:18px;}
+/* ── METRICS ── */
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
+.metric{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:13px;}
+.metric-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;}
+.metric-val{font-size:21px;font-weight:600;letter-spacing:-0.5px;}
+.metric-val.g{color:var(--green);}.metric-val.b{color:var(--accent);}
+.metric-val.a{color:var(--amber);}.metric-val.r{color:var(--red);}
+.metric-val.p{color:var(--purple);}.metric-val.t{color:var(--teal);}
+.metric-sub{font-size:10px;color:var(--muted);margin-top:3px;}
+.sec{font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;}
+/* ── CARDS ── */
+.card{background:var(--s1);border:1px solid var(--border);border-radius:13px;padding:13px 14px;margin-bottom:9px;}
+.card-row{display:flex;justify-content:space-between;align-items:center;}
+.card-title{font-size:14px;font-weight:600;}
+.card-sub{font-size:11px;color:var(--muted);margin-top:3px;}
+.card-right{text-align:right;flex-shrink:0;margin-left:10px;}
+/* ── FORM ── */
+.form-group{margin-bottom:13px;}
+.form-label{font-size:12px;color:var(--muted);margin-bottom:6px;display:block;}
+input,select,textarea{width:100%;background:var(--s2);border:1px solid var(--border2);border-radius:11px;padding:11px 13px;font-family:'Sora',sans-serif;font-size:14px;color:var(--text);outline:none;-webkit-appearance:none;appearance:none;}
+textarea{resize:vertical;min-height:90px;line-height:1.65;}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);}
+input::placeholder,textarea::placeholder{color:var(--muted);}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+/* ── PREVIEW ── */
+.preview{background:var(--s2);border:1px solid var(--border2);border-radius:12px;padding:13px;margin:14px 0;}
+.pv-row{display:flex;justify-content:space-between;padding:5px 0;}
+.pv-row+.pv-row{border-top:1px solid var(--border);}
+.pv-key{font-size:12px;color:var(--muted);}
+.pv-val{font-size:13px;font-weight:500;}
+/* ── BTNS ── */
+.btn{width:100%;border:none;border-radius:12px;padding:13px;font-family:'Sora',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px;display:block;text-align:center;}
+.btn:active{opacity:.82;}
+.btn.blue{background:var(--accent);color:#fff;}
+.btn.ghost{background:transparent;border:1px solid var(--border2);color:var(--muted);margin-top:9px;}
+.btn.purple{background:var(--purple);color:#fff;}
+.btn.teal{background:var(--teal);color:#0d1117;}
+.btn.green{background:var(--green);color:#0d1117;}
+.add-btn{width:100%;background:transparent;border:1px dashed rgba(255,255,255,.15);border-radius:11px;padding:11px;font-family:'Sora',sans-serif;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;margin-top:4px;display:block;}
+.qty-btn{flex:1;background:var(--s2);border:1px solid var(--border2);border-radius:9px;padding:9px;font-family:'Sora',sans-serif;font-size:13px;font-weight:600;color:var(--text);cursor:pointer;}
+/* ── TAGS ── */
+.tag{display:inline-block;font-size:10px;padding:2px 9px;border-radius:20px;font-weight:500;margin-left:6px;}
+.tag.g{background:rgba(52,211,153,.15);color:var(--green);}
+.tag.r{background:rgba(248,113,113,.15);color:var(--red);}
+.tag.a{background:rgba(251,191,36,.15);color:var(--amber);}
+.tag.b{background:rgba(79,143,255,.15);color:var(--accent);}
+.tag.p{background:rgba(167,139,250,.15);color:var(--purple);}
+.tag.t{background:rgba(45,212,191,.15);color:var(--teal);}
+/* ── DIÁRIO ── */
+.coll-card{background:var(--s1);border:1px solid var(--border);border-radius:13px;margin-bottom:9px;overflow:hidden;}
+.coll-head{padding:13px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none;}
+.coll-name{font-size:14px;font-weight:600;}
+.coll-sub{font-size:11px;color:var(--muted);margin-top:3px;}
+.coll-body{display:none;border-top:1px solid var(--border);padding:13px;}
+.coll-card.open .coll-body{display:block;}
+.nota-item{background:var(--s2);border-radius:10px;padding:12px;margin-bottom:9px;position:relative;}
+.nota-data{font-size:10px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;}
+.nota-txt{font-size:13px;line-height:1.7;white-space:pre-wrap;word-break:break-word;}
+.nota-del{position:absolute;top:9px;right:9px;background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;padding:2px 6px;}
+/* ── SEARCH ── */
+.search-wrap{position:relative;margin-bottom:14px;}
+.search-wrap svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--muted);fill:none;stroke-width:2;pointer-events:none;}
+.search-wrap input{padding-left:36px;}
+/* ── SALDO ── */
+.saldo-box{background:var(--s2);border:1px solid var(--border2);border-radius:13px;padding:14px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;}
+.saldo-lbl{font-size:12px;color:var(--muted);}
+.saldo-val{font-size:22px;font-weight:600;}
+/* ── MODAL ── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:300;align-items:flex-end;}
+.overlay.open{display:flex;}
+.modal{background:var(--s1);border-radius:22px 22px 0 0;padding:22px 18px 36px;width:100%;max-height:92vh;overflow-y:auto;}
+.modal-hd{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;}
+.modal-title{font-size:17px;font-weight:600;}
+.modal-sub{font-size:12px;color:var(--muted);margin-top:3px;}
+.modal-x{background:none;border:none;color:var(--muted);font-size:26px;cursor:pointer;line-height:1;flex-shrink:0;}
+/* ── TOAST ── */
+.toast{position:fixed;top:66px;right:16px;background:var(--green);color:#0d1117;padding:10px 18px;border-radius:12px;font-size:13px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;z-index:500;}
+.toast.show{opacity:1;}
+.empty{text-align:center;padding:36px 16px;color:var(--muted);font-size:13px;line-height:1.9;}
+/* ── TIMELINE ── */
+.tl-item{display:flex;gap:12px;margin-bottom:0;}
+.tl-line{display:flex;flex-direction:column;align-items:center;flex-shrink:0;}
+.tl-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.tl-connector{width:2px;flex:1;background:var(--border2);margin:4px 0;}
+.tl-content{flex:1;padding-bottom:16px;}
+.tl-date{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.tl-card{background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:11px 13px;}
+.tl-tipo{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
+.tl-titulo{font-size:14px;font-weight:600;margin-bottom:2px;}
+.tl-detalhe{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.6;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+
+<!-- ══ AUTH SCREEN ══ -->
+<div id="auth-screen">
+  <div class="auth-logo">🦷</div>
+  <div class="auth-title">Implanto</div>
+  <div class="auth-sub">Painel para implantodontistas</div>
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">Entrar</button>
+      <button class="auth-tab" id="tab-signup" onclick="switchTab('signup')">Criar conta</button>
+    </div>
+    <div id="form-login">
+      <div class="form-group"><label class="form-label">Email</label><input type="email" id="login-email" placeholder="seu@email.com"></div>
+      <div class="form-group"><label class="form-label">Senha</label><input type="password" id="login-senha" placeholder="••••••••" onkeydown="if(event.key==='Enter')fazerLogin()"></div>
+      <button class="btn blue" onclick="fazerLogin()">Entrar ✓</button>
+      <div style="text-align:center;margin-top:14px;font-size:12px;color:var(--muted);">
+        Ainda não tem conta? <span style="color:var(--accent);cursor:pointer;font-weight:600;" onclick="switchTab('signup')">Criar agora</span>
+      </div>
+    </div>
+    <div id="form-signup" style="display:none;">
+      <div class="form-group"><label class="form-label">Seu nome</label><input type="text" id="signup-nome" placeholder="Dr. João Silva"></div>
+      <div class="form-group"><label class="form-label">Especialidade</label>
+        <select id="signup-espec">
+          <option value="Implantodontista">Implantodontista</option>
+          <option value="Periodontista">Periodontista</option>
+          <option value="Protesista">Protesista</option>
+          <option value="Cirurgião Dentista">Cirurgião Dentista</option>
+          <option value="Endodontista">Endodontista</option>
+          <option value="Ortodontista">Ortodontista</option>
+          <option value="Outro">Outro</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Email</label><input type="email" id="signup-email" placeholder="seu@email.com"></div>
+      <div class="form-group"><label class="form-label">Senha</label><input type="password" id="signup-senha" placeholder="mínimo 6 caracteres" onkeydown="if(event.key==='Enter')fazerCadastro()"></div>
+      <button class="btn blue" onclick="fazerCadastro()">Criar minha conta ✓</button>
+      <div style="text-align:center;margin-top:14px;font-size:12px;color:var(--muted);">
+        Já tem conta? <span style="color:var(--accent);cursor:pointer;font-weight:600;" onclick="switchTab('login')">Entrar</span>
+      </div>
+    </div>
+    <div id="auth-erro" style="display:none;font-size:12px;margin-top:12px;text-align:center;padding:10px;border-radius:10px;background:rgba(248,113,113,.1);color:var(--red);"></div>
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-top:24px;text-align:center;max-width:300px;">
+    Seus dados ficam seguros e isolados na nuvem.<br>Cada profissional acessa apenas as suas informações.
+  </div>
+</div>
+
+<!-- ══ APP SCREEN ══ -->
+<div id="app-screen">
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div>
+    <div class="topbar-title" id="topbar-title">🦷 Implantodontistas</div>
+    <div class="topbar-sub" id="topbar-sub">visão geral</div>
+  </div>
+  <div class="menu-btn" onclick="abrirDrawer()">
+    <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </div>
+</div>
+
+<!-- DRAWER -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="fecharDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-hd">
+    <div class="drawer-logo">🦷 Implanto</div>
+    <button class="drawer-x" onclick="fecharDrawer()">×</button>
+  </div>
+  <div class="drawer-section">Principal</div>
+  <button class="drawer-item active" id="di-painel" onclick="goTo('painel',this,'Implantodontistas','visão geral')">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Implantodontistas
+  </button>
+  <button class="drawer-item" id="di-pacientes" onclick="goTo('pacientes',this,'Pacientes','histórico por paciente')">
+    <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Pacientes
+  </button>
+  <button class="drawer-item" id="di-lancar" onclick="goTo('lancar',this,'Procedimentos','novo lançamento')">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Novo Procedimento
+  </button>
+  <button class="drawer-item" id="di-hist" onclick="goTo('hist',this,'Histórico','todos os procedimentos')">
+    <svg viewBox="0 0 24 24"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>Histórico
+  </button>
+  <button class="drawer-item" id="di-resumo" onclick="goTo('resumo',this,'Resumo','por procedimento')">
+    <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Resumo
+  </button>
+  <div class="drawer-section">Clínico</div>
+  <button class="drawer-item" id="di-diario" onclick="goTo('diario',this,'Diário Clínico','evoluções por paciente')">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Diário Clínico
+  </button>
+  <button class="drawer-item" id="di-protese" onclick="goTo('protese',this,'Prótese','controle de laboratório')">
+    <svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 0 1 5 5c0 3-2 5.5-5 8-3-2.5-5-5-5-8a5 5 0 0 1 5-5z"/><path d="M12 15v7"/><path d="M9 19h6"/></svg>Prótese
+  </button>
+  <button class="drawer-item" id="di-estoque" onclick="goTo('estoque',this,'Estoque','materiais e insumos')">
+    <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>Estoque
+  </button>
+  <div class="drawer-section">Financeiro</div>
+  <button class="drawer-item" id="di-contas" onclick="goTo('contas',this,'Contas','receitas e despesas')">
+    <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Contas
+  </button>
+  <div class="drawer-section">Conta</div>
+  <button class="drawer-item" id="di-config" onclick="goTo('config',this,'Configurações','perfil e preferências')">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>Configurações
+  </button>
+  <div style="padding:16px;">
+    <button class="btn ghost" style="font-size:12px;padding:10px;margin-top:8px;" onclick="fazerLogout()">🚪 Sair da conta</button>
+  </div>
+</div>
+
+<!-- ══ PAGES ══ -->
+<div class="page active" id="pg-painel">
+  <div class="pg-title" id="saudacao">Olá! 👋</div>
+  <div class="pg-sub" id="sub-painel">carregando...</div>
+  <div class="metrics">
+    <div class="metric"><div class="metric-lbl">Bruto mês</div><div class="metric-val b" id="m-bruto">R$ 0</div><div class="metric-sub" id="m-qtd">0 procedimentos</div></div>
+    <div class="metric"><div class="metric-lbl">Líquido mês</div><div class="metric-val g" id="m-liq">R$ 0</div><div class="metric-sub">após custos</div></div>
+    <div class="metric"><div class="metric-lbl">Custos mat.</div><div class="metric-val r" id="m-custo">R$ 0</div><div class="metric-sub">materiais</div></div>
+    <div class="metric"><div class="metric-lbl">Repasse</div><div class="metric-val a" id="m-repasse">–</div><div class="metric-sub">da clínica</div></div>
+  </div>
+
+  <!-- Gráfico faturamento 6 meses -->
+  <div style="background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--text);">Faturamento — últimos 6 meses</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px;">Bruto vs Líquido</div>
+      </div>
+      <button onclick="exportarPDF()" style="background:var(--s2);border:1px solid var(--border2);border-radius:9px;padding:7px 12px;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;font-family:'Sora',sans-serif;display:flex;align-items:center;gap:5px;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        PDF
+      </button>
+    </div>
+    <canvas id="chart-fat" height="160"></canvas>
+  </div>
+
+  <!-- Gráfico procedimentos por tipo -->
+  <div style="background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:16px;">
+    <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:12px;">Procedimentos por tipo (mês atual)</div>
+    <canvas id="chart-tipos" height="160"></canvas>
+  </div>
+
+  <div class="sec">Últimos lançamentos</div>
+  <div id="lista-painel"></div>
+</div>
+
+<div class="page" id="pg-pacientes">
+  <div class="pg-title">Pacientes</div>
+  <div class="pg-sub">Histórico completo por paciente</div>
+  <div class="search-wrap">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/></svg>
+    <input type="text" id="busca-pac-lista" placeholder="Buscar paciente..." oninput="renderPacientes()">
+  </div>
+  <div id="lista-pacientes"></div>
+</div>
+
+<!-- Pasta do Paciente -->
+<div class="page" id="pg-pasta-pac">
+  <div style="display:flex;align-items:center;gap:10px;padding:72px 16px 0;">
+    <button onclick="goTo('pacientes',document.getElementById('di-pacientes'),'Pacientes','histórico por paciente')" style="background:var(--s2);border:1px solid var(--border2);border-radius:10px;padding:8px 12px;font-size:13px;color:var(--muted);cursor:pointer;font-family:'Sora',sans-serif;">← Voltar</button>
+    <div>
+      <div class="pg-title" id="pasta-pac-nome" style="margin-bottom:0;">Paciente</div>
+      <div style="font-size:11px;color:var(--muted);" id="pasta-pac-sub">histórico completo</div>
+    </div>
+  </div>
+  <div style="padding:14px 16px 0;">
+    <div class="metrics" id="pasta-metrics"></div>
+    <button class="btn blue" style="margin-bottom:12px;" onclick="abrirNovoProc()">+ Novo procedimento</button>
+    <button class="btn ghost" style="margin-bottom:16px;margin-top:0;" onclick="abrirModal('nota', document.getElementById('pasta-pac-nome').textContent)">+ Nova nota clínica</button>
+    <div class="sec">Linha do tempo</div>
+    <div id="pasta-timeline"></div>
+  </div>
+</div>
+
+<div class="page" id="pg-lancar">
+  <div class="pg-title">Novo Procedimento</div>
+  <div class="pg-sub">Preencha os dados do atendimento</div>
+  <button class="btn ghost" style="margin-bottom:14px;margin-top:0;font-size:12px;padding:9px;" onclick="abrirModal('gerenciarProcs',null)">⚙️ Gerenciar procedimentos</button>
+  <div class="form-group"><label class="form-label">Paciente</label><input type="text" id="inp-pac" placeholder="Nome do paciente" oninput="calcPrev()" list="dl-pacs-lancar"><datalist id="dl-pacs-lancar"></datalist></div>
+  <div class="form-group"><label class="form-label">Procedimento</label>
+    <select id="inp-proc" onchange="onProcChange()"><option value="">Selecione...</option></select>
+  </div>
+  <div id="manual-wrap" style="display:none;">
+    <div class="row2">
+      <div class="form-group"><label class="form-label">Valor cobrado (R$)</label><input type="number" id="inp-val" placeholder="0" oninput="calcPrev()"></div>
+      <div class="form-group"><label class="form-label">Custo material (R$)</label><input type="number" id="inp-custo-m" placeholder="0" oninput="calcPrev()"></div>
+    </div>
+  </div>
+  <div class="preview" id="preview" style="display:none;">
+    <div class="pv-row"><span class="pv-key">Valor bruto</span><span class="pv-val" id="pv-b">–</span></div>
+    <div class="pv-row"><span class="pv-key">Repasse (<span id="pv-pct">–</span>%)</span><span class="pv-val" id="pv-r">–</span></div>
+    <div class="pv-row"><span class="pv-key">Custo material</span><span class="pv-val" id="pv-c" style="color:var(--red)">–</span></div>
+    <div class="pv-row"><span class="pv-key" style="font-weight:600;color:var(--text)">Seu líquido</span><span class="pv-val" id="pv-l" style="color:var(--green);font-size:16px;">–</span></div>
+  </div>
+  <button class="btn blue" onclick="salvar()">Salvar procedimento ✓</button>
+  <button class="btn ghost" onclick="limparForm()">Limpar</button>
+
+  <!-- Procedimentos cadastrados -->
+  <div style="margin-top:24px;">
+    <div class="sec">Procedimentos cadastrados</div>
+    <div id="lista-procs-lancar"></div>
+  </div>
+</div>
+
+<div class="page" id="pg-hist">
+  <div class="pg-title">Histórico</div>
+  <div class="pg-sub">Toque em ✏️ para editar qualquer lançamento</div>
+  <div id="lista-hist"></div>
+</div>
+
+<div class="page" id="pg-resumo">
+  <div class="pg-title">Resumo</div>
+  <div class="pg-sub">Líquido médio por procedimento</div>
+  <div id="lista-resumo"></div>
+</div>
+
+<div class="page" id="pg-diario">
+  <div class="pg-title">Diário Clínico</div>
+  <div class="pg-sub">Evoluções e notas por paciente</div>
+  <div class="search-wrap">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/></svg>
+    <input type="text" id="busca-pac" placeholder="Buscar paciente..." oninput="renderDiario()">
+  </div>
+  <button class="btn purple" style="margin-bottom:16px;" onclick="abrirModal('nota',null)">+ Nova nota de atendimento</button>
+  <div id="lista-diario"></div>
+</div>
+
+<div class="page" id="pg-estoque">
+  <div class="pg-title">Estoque</div>
+  <div class="pg-sub">Materiais e insumos da clínica</div>
+  <div class="metrics">
+    <div class="metric"><div class="metric-lbl">Total itens</div><div class="metric-val b" id="eq-total">0</div></div>
+    <div class="metric"><div class="metric-lbl">Atenção</div><div class="metric-val a" id="eq-low">0</div><div class="metric-sub">estoque baixo</div></div>
+  </div>
+  <button class="btn teal" style="margin-bottom:16px;" onclick="abrirModal('estoque',null)">+ Adicionar item ao estoque</button>
+  <div class="search-wrap">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/></svg>
+    <input type="text" id="busca-estq" placeholder="Buscar item..." oninput="renderEstoque()">
+  </div>
+  <div id="lista-estoque"></div>
+</div>
+
+<div class="page" id="pg-protese">
+  <div class="pg-title">Controle de Prótese</div>
+  <div class="pg-sub">Acompanhe cada trabalho no laboratório</div>
+  <div class="metrics">
+    <div class="metric"><div class="metric-lbl">Em andamento</div><div class="metric-val t" id="pr-ativos">0</div></div>
+    <div class="metric"><div class="metric-lbl">Prontos</div><div class="metric-val g" id="pr-prontos">0</div><div class="metric-sub">para entregar</div></div>
+  </div>
+  <button class="btn teal" style="margin-bottom:16px;" onclick="abrirModal('protese',null)">+ Novo trabalho protético</button>
+  <div id="lista-protese"></div>
+</div>
+
+<div class="page" id="pg-contas">
+  <div class="pg-title">Contas</div>
+  <div class="pg-sub">Receitas e despesas</div>
+  <div class="saldo-box">
+    <div><div class="saldo-lbl">Saldo atual</div></div>
+    <div class="saldo-val" id="ct-saldo">R$ 0,00</div>
+  </div>
+  <div class="metrics">
+    <div class="metric"><div class="metric-lbl">Receitas</div><div class="metric-val g" id="ct-rec">R$ 0</div></div>
+    <div class="metric"><div class="metric-lbl">Despesas</div><div class="metric-val r" id="ct-desp">R$ 0</div></div>
+  </div>
+  <div style="display:flex;gap:9px;margin-bottom:16px;">
+    <button class="btn green" style="margin-top:0;" onclick="abrirModal('conta','receita')">+ Receita</button>
+    <button class="btn ghost" style="margin-top:0;border-color:rgba(248,113,113,.3);color:var(--red);" onclick="abrirModal('conta','despesa')">− Despesa</button>
+  </div>
+  <div id="lista-contas"></div>
+</div>
+
+<div class="page" id="pg-config">
+  <div class="pg-title">Configurações</div>
+  <div class="pg-sub">Perfil e preferências do app</div>
+  <div class="sec">Perfil</div>
+  <div class="card" style="margin-bottom:18px;">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+      <div style="width:52px;height:52px;border-radius:50%;background:rgba(79,143,255,.2);border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;" id="cfg-avatar">?</div>
+      <div>
+        <div style="font-size:16px;font-weight:600;" id="cfg-nome-display">Seu nome</div>
+        <div style="font-size:12px;color:var(--muted);" id="cfg-espec-display">Implantodontista</div>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Seu nome</label><input type="text" id="cfg-nome" placeholder="Dr. João Silva"></div>
+    <button class="btn blue" onclick="salvarNome()">Salvar nome ✓</button>
+  </div>
+  <div class="sec">Financeiro</div>
+  <div class="card" style="margin-bottom:18px;">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">Configure o percentual que você recebe da clínica. Isso afeta todos os cálculos de líquido.</div>
+    <div class="form-group"><label class="form-label">% de repasse da clínica</label><input type="number" id="cfg-repasse" placeholder="Ex: 65" min="1" max="100"></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:-6px;margin-bottom:12px;">Atualmente: <span id="cfg-repasse-atual" style="color:var(--accent);font-weight:600;">–</span></div>
+    <button class="btn blue" onclick="salvarRepasse()">Salvar repasse ✓</button>
+  </div>
+  <div class="sec">Procedimentos</div>
+  <div class="card" style="margin-bottom:18px;">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">Cadastre os procedimentos que você realiza com seus valores e custos. Eles aparecerão na hora de lançar.</div>
+    <button class="btn ghost" style="margin-top:0;" onclick="goTo('lancar',document.getElementById('di-lancar'),'Lançar','novo procedimento');setTimeout(()=>abrirModal('gerenciarProcs',null),100)">⚙️ Gerenciar procedimentos</button>
+  </div>
+  <div class="sec">Conta</div>
+  <div class="card">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:6px;" id="cfg-email-display"></div>
+    <button class="btn ghost" style="color:var(--red);border-color:rgba(248,113,113,.3);margin-top:0;" onclick="fazerLogout()">🚪 Sair da conta</button>
+  </div>
+</div>
+
+<!-- ══ MODAIS ══ -->
+<!-- Modal Editar Procedimento -->
+<div class="overlay" id="ov-editproc">
+  <div class="modal">
+    <div class="modal-hd">
+      <div><div class="modal-title">Editar procedimento</div><div class="modal-sub">Altere os dados e salve</div></div>
+      <button class="modal-x" onclick="fecharModal('editproc')">×</button>
+    </div>
+    <input type="hidden" id="ep-id">
+    <div class="form-group"><label class="form-label">Paciente</label><input type="text" id="ep-pac" placeholder="Nome do paciente"></div>
+    <div class="form-group"><label class="form-label">Procedimento</label>
+      <select id="ep-proc" onchange="onEpChange()"><option value="">Selecione...</option></select>
+    </div>
+    <div class="row2">
+      <div class="form-group"><label class="form-label">Valor cobrado (R$)</label><input type="number" id="ep-val" placeholder="0" oninput="calcEpPrev()"></div>
+      <div class="form-group"><label class="form-label">Custo material (R$)</label><input type="number" id="ep-custo" placeholder="0" oninput="calcEpPrev()"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Data</label><input type="text" id="ep-data" placeholder="dd/mm/aaaa"></div>
+    <div class="preview" id="ep-preview">
+      <div class="pv-row"><span class="pv-key">Repasse</span><span class="pv-val" id="ep-pv-r">–</span></div>
+      <div class="pv-row"><span class="pv-key" style="font-weight:600;color:var(--text)">Líquido</span><span class="pv-val" id="ep-pv-l" style="color:var(--green);font-size:16px;">–</span></div>
+    </div>
+    <button class="btn blue" onclick="salvarEdicaoProc()">Salvar alterações ✓</button>
+    <button class="btn ghost" onclick="fecharModal('editproc')">Cancelar</button>
+  </div>
+</div>
+
+<!-- Modal Nota -->
+<div class="overlay" id="ov-nota">
+  <div class="modal">
+    <div class="modal-hd">
+      <div><div class="modal-title" id="nota-titulo">Nova nota</div><div class="modal-sub">Registre as observações do atendimento</div></div>
+      <button class="modal-x" onclick="fecharModal('nota')">×</button>
+    </div>
+    <div class="form-group"><label class="form-label">Paciente</label><input type="text" id="nota-pac" placeholder="Nome do paciente" list="dl-pacs"><datalist id="dl-pacs"></datalist></div>
+    <div class="form-group"><label class="form-label">Procedimento</label>
+      <select id="nota-proc">
+        <option value="">Selecione ou deixe em branco</option>
+        <option>Implante · 1ª Etapa</option><option>Implante · 2ª Etapa</option>
+        <option>Limpeza de Protocolo</option><option>Aperto de Implante</option>
+        <option>Coroa de Porcelana</option><option>Consulta / Avaliação</option>
+        <option>Retorno</option><option>Outro</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Data</label><input type="text" id="nota-data" placeholder="dd/mm/aaaa"></div>
+    <div class="form-group">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <label class="form-label" style="margin-bottom:0;">Anotações clínicas</label>
+        <button id="mic-btn" onclick="toggleMic()" style="background:var(--s2);border:1px solid var(--border2);border-radius:10px;padding:7px 13px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:6px;font-family:'Sora',sans-serif;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          <span id="mic-label">Gravar</span>
+        </button>
+      </div>
+      <div id="mic-status" style="display:none;font-size:11px;color:var(--red);margin-bottom:6px;align-items:center;gap:5px;">
+        <span style="width:7px;height:7px;background:var(--red);border-radius:50%;display:inline-block;animation:pulse 1s infinite;"></span>
+        Gravando...
+      </div>
+      <textarea id="nota-txt" rows="5" placeholder="Observações, evolução, próximos passos... ou use o microfone 🎙️"></textarea>
+    </div>
+    <button class="btn purple" onclick="salvarNota()">Salvar nota ✓</button>
+    <button class="btn ghost" onclick="fecharModal('nota')">Cancelar</button>
+  </div>
+</div>
+
+<!-- Modal Estoque -->
+<div class="overlay" id="ov-estoque">
+  <div class="modal">
+    <div class="modal-hd">
+      <div><div class="modal-title" id="estq-titulo">Novo item</div><div class="modal-sub">Cadastrar material no estoque</div></div>
+      <button class="modal-x" onclick="fecharModal('estoque')">×</button>
+    </div>
+    <input type="hidden" id="estq-edit-id">
+    <div class="form-group"><label class="form-label">Nome do item</label><input type="text" id="estq-nome" placeholder="Ex: Implante 4.0 x 13mm"></div>
+    <div class="form-group"><label class="form-label">Categoria</label>
+      <select id="estq-cat">
+        <option>Implantes</option><option>Componentes protéticos</option><option>Materiais cirúrgicos</option>
+        <option>Anestésicos</option><option>EPI</option><option>Medicamentos</option><option>Outros</option>
+      </select>
+    </div>
+    <div class="row2">
+      <div class="form-group"><label class="form-label">Qtd. atual</label><input type="number" id="estq-qty" placeholder="0" min="0"></div>
+      <div class="form-group"><label class="form-label">Qtd. mínima</label><input type="number" id="estq-min" placeholder="2" min="0"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Fornecedor (opcional)</label><input type="text" id="estq-forn" placeholder="Nome do fornecedor"></div>
+    <button class="btn teal" onclick="salvarEstoque()">Salvar item ✓</button>
+    <button class="btn ghost" onclick="fecharModal('estoque')">Cancelar</button>
+  </div>
+</div>
+
+<!-- Modal Prótese -->
+<div class="overlay" id="ov-protese">
+  <div class="modal">
+    <div class="modal-hd">
+      <div><div class="modal-title">Trabalho protético</div><div class="modal-sub">Registrar envio ao laboratório</div></div>
+      <button class="modal-x" onclick="fecharModal('protese')">×</button>
+    </div>
+    <input type="hidden" id="pr-edit-id">
+    <div class="form-group"><label class="form-label">Paciente</label><input type="text" id="pr-pac" placeholder="Nome do paciente" list="dl-pacs2"><datalist id="dl-pacs2"></datalist></div>
+    <div class="form-group"><label class="form-label">Tipo de prótese</label>
+      <select id="pr-tipo">
+        <option>Coroa unitária</option><option>Coroa sobre implante</option><option>Protocolo superior</option>
+        <option>Protocolo inferior</option><option>Prótese parcial fixa</option><option>Prótese total</option>
+        <option>Provisório</option><option>Outro</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Laboratório</label><input type="text" id="pr-lab" placeholder="Nome do laboratório"></div>
+    <div class="row2">
+      <div class="form-group"><label class="form-label">Data de envio</label><input type="text" id="pr-env" placeholder="dd/mm/aaaa"></div>
+      <div class="form-group"><label class="form-label">Previsão retorno</label><input type="text" id="pr-prev" placeholder="dd/mm/aaaa"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Valor do laboratório (R$)</label><input type="number" id="pr-val" placeholder="0"></div>
+    <div class="form-group"><label class="form-label">Status</label>
+      <select id="pr-status">
+        <option value="lab">No laboratório</option>
+        <option value="pronto">Pronto para entregar</option>
+        <option value="entregue">Entregue ao paciente</option>
+        <option value="ajuste">Em ajuste</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Observações</label><textarea id="pr-obs" rows="3" placeholder="Cor, tamanho, orientações especiais..."></textarea></div>
+    <button class="btn teal" onclick="salvarProtese()">Salvar trabalho ✓</button>
+    <button class="btn ghost" onclick="fecharModal('protese')">Cancelar</button>
+  </div>
+</div>
+
+<!-- Modal Conta -->
+<div class="overlay" id="ov-conta">
+  <div class="modal">
+    <div class="modal-hd">
+      <div><div class="modal-title" id="ct-titulo">Nova receita</div><div class="modal-sub" id="ct-sub">Registrar entrada financeira</div></div>
+      <button class="modal-x" onclick="fecharModal('conta')">×</button>
+    </div>
+    <input type="hidden" id="ct-tipo">
+    <div class="form-group"><label class="form-label">Descrição</label><input type="text" id="ct-desc" placeholder="Ex: Pagamento Odete, Aluguel, Material..."></div>
+    <div class="row2">
+      <div class="form-group"><label class="form-label">Valor (R$)</label><input type="number" id="ct-val" placeholder="0"></div>
+      <div class="form-group"><label class="form-label">Data</label><input type="text" id="ct-data" placeholder="dd/mm/aaaa"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Categoria</label>
+      <select id="ct-cat">
+        <option>Procedimento</option><option>Material</option><option>Laboratório</option>
+        <option>Aluguel</option><option>Equipamento</option><option>Salário</option><option>Outros</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Status</label>
+      <select id="ct-status">
+        <option value="pago">Pago / Recebido</option>
+        <option value="pendente">Pendente</option>
+        <option value="atrasado">Atrasado</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Observações</label><input type="text" id="ct-obs" placeholder="Opcional..."></div>
+    <button class="btn green" id="ct-save-btn" onclick="salvarConta()">Salvar ✓</button>
+    <button class="btn ghost" onclick="fecharModal('conta')">Cancelar</button>
+  </div>
+</div>
+
+<!-- Modal Gerenciar Procedimentos -->
+<div class="overlay" id="ov-gerenciarProcs">
+  <div class="modal">
+    <div class="modal-hd">
+      <div><div class="modal-title">Procedimentos</div><div class="modal-sub">Adicione ou remova da lista</div></div>
+      <button class="modal-x" onclick="fecharModal('gerenciarProcs')">×</button>
+    </div>
+    <div id="lista-procs-custom" style="margin-bottom:14px;"></div>
+    <div style="background:var(--s2);border:1px solid var(--border2);border-radius:12px;padding:13px;">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;font-weight:500;">Novo procedimento</div>
+      <div class="form-group"><label class="form-label">Nome</label><input type="text" id="cp-nome" placeholder="Ex: Enxerto ósseo"></div>
+      <div class="row2">
+        <div class="form-group"><label class="form-label">Valor (R$)</label><input type="number" id="cp-val" placeholder="0"></div>
+        <div class="form-group"><label class="form-label">Custo (R$)</label><input type="number" id="cp-custo" placeholder="0"></div>
+      </div>
+      <button class="btn blue" onclick="adicionarProcCustom()">+ Adicionar ✓</button>
+    </div>
+    <button class="btn ghost" onclick="fecharModal('gerenciarProcs')">Fechar</button>
+  </div>
+</div>
+
+</div><!-- /app-screen -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── PROCEDIMENTOS POR ESPECIALIDADE ──────────────────────────────────────────
+const PROCS_ESPEC = {
+  'Implantodontista': [
+    {nome:'Implante Unitário · 1ª Etapa (Cirurgia)',val:1800,custo:350},
+    {nome:'Implante Unitário · 2ª Etapa (Reabertura)',val:600,custo:50},
+    {nome:'Coroa sobre Implante',val:2200,custo:600},
+    {nome:'Enxerto Ósseo',val:2500,custo:800},
+    {nome:'Enxerto de Tecido Mole',val:1500,custo:300},
+    {nome:'Protocolo (Carga Imediata)',val:12000,custo:3500},
+    {nome:'Aperto / Manutenção de Implante',val:250,custo:0},
+    {nome:'Consulta / Avaliação',val:200,custo:0},
+  ],
+  'Periodontista': [
+    {nome:'Raspagem e Alisamento Radicular',val:800,custo:50},
+    {nome:'Cirurgia Periodontal',val:2000,custo:200},
+    {nome:'Enxerto Gengival',val:1800,custo:300},
+    {nome:'Gengivectomia',val:1200,custo:100},
+    {nome:'Implante Unitário · 1ª Etapa',val:1800,custo:350},
+    {nome:'Consulta / Avaliação',val:200,custo:0},
+  ],
+  'Protesista': [
+    {nome:'Coroa de Porcelana',val:2000,custo:600},
+    {nome:'Coroa Metal-cerâmica',val:1500,custo:400},
+    {nome:'Prótese Parcial Fixa (por elemento)',val:1800,custo:500},
+    {nome:'Prótese Total',val:2500,custo:700},
+    {nome:'Prótese Parcial Removível',val:1800,custo:500},
+    {nome:'Protocolo sobre Implantes',val:12000,custo:3500},
+    {nome:'Faceta de Porcelana',val:2200,custo:700},
+    {nome:'Consulta / Avaliação',val:200,custo:0},
+  ],
+  'Cirurgião Dentista': [
+    {nome:'Extração Simples',val:300,custo:30},
+    {nome:'Extração de Siso',val:800,custo:80},
+    {nome:'Frenectomia',val:600,custo:50},
+    {nome:'Biopsia',val:500,custo:50},
+    {nome:'Implante Unitário · 1ª Etapa',val:1800,custo:350},
+    {nome:'Consulta / Avaliação',val:200,custo:0},
+  ],
+  'Endodontista': [
+    {nome:'Tratamento de Canal · 1 raiz',val:800,custo:80},
+    {nome:'Tratamento de Canal · 2 raízes',val:1100,custo:100},
+    {nome:'Tratamento de Canal · 3 raízes',val:1400,custo:120},
+    {nome:'Retratamento de Canal',val:1600,custo:150},
+    {nome:'Apicectomia',val:2000,custo:200},
+    {nome:'Consulta / Avaliação',val:200,custo:0},
+  ],
+  'Ortodontista': [
+    {nome:'Instalação de Aparelho Fixo',val:3500,custo:800},
+    {nome:'Manutenção Mensal',val:250,custo:20},
+    {nome:'Instalação de Alinhador',val:4000,custo:1200},
+    {nome:'Contenção',val:600,custo:150},
+    {nome:'Consulta / Avaliação',val:200,custo:0},
+  ],
+  'Outro': [
+    {nome:'Consulta / Avaliação',val:200,custo:0},
+    {nome:'Limpeza / Profilaxia',val:200,custo:30},
+    {nome:'Restauração Resina',val:300,custo:40},
+    {nome:'Clareamento',val:800,custo:150},
+  ],
+};
+
+// ── SUPABASE ──────────────────────────────────────────────────────────────────
+const SUPA_URL = 'https://ogjljzrdxekmgiqognyj.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9namxqenJkeGVrbWdpcW9nbnlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDk2NDAsImV4cCI6MjA4OTQyNTY0MH0.M52m_sYFK4THxClY8zyZshwOKAb-gHvFkI35xPUstnA';
+const { createClient } = supabase;
+const sb = createClient(SUPA_URL, SUPA_KEY);
+
+let currentUser = null;
+let userMeta = {};
+let dados=[], notas=[], estq=[], prots=[], contas=[], customProcs=[];
+
+// ── STORAGE HÍBRIDO (localStorage + Supabase) ─────────────────────────────────
+const LS = {
+  get: (k) => { try { return JSON.parse(localStorage.getItem(k))||[]; } catch(e){ return []; } },
+  set: (k,v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} },
+};
+const lsKey = (tabela) => `imp_${tabela}_${currentUser?.id||'local'}`;
+
+// Salva local IMEDIATAMENTE, depois tenta Supabase em segundo plano
+async function salvarItem(tabela, obj){
+  const key = lsKey(tabela);
+  const local = LS.get(key);
+  const tempId = obj.id || Date.now() + Math.floor(Math.random()*999);
+  const item = {...obj, id: tempId, _sync: false};
+  local.unshift(item);
+  LS.set(key, local);
+
+  // Tenta Supabase em segundo plano
+  try {
+    const objSupa = {...obj};
+    delete objSupa.id;
+    delete objSupa._sync;
+    if(currentUser) objSupa.user_id = currentUser.id;
+    const {data, error} = await sb.from(tabela).insert(objSupa).select().single();
+    if(!error && data){
+      // Atualiza ID real no localStorage
+      const idx = local.findIndex(x=>x.id===tempId);
+      if(idx>=0){ local[idx] = {...data, _sync:true}; LS.set(key, local); }
+      return data;
+    }
+  } catch(e){}
+  return item;
+}
+
+async function atualizarItem(tabela, id, obj){
+  const key = lsKey(tabela);
+  const local = LS.get(key);
+  const idx = local.findIndex(x=>x.id===id);
+  if(idx>=0){ Object.assign(local[idx], obj); LS.set(key, local); }
+  try { if(currentUser) await sb.from(tabela).update(obj).eq('id',id); } catch(e){}
+}
+
+async function deletarItem(tabela, id){
+  const key = lsKey(tabela);
+  const local = LS.get(key).filter(x=>x.id!==id);
+  LS.set(key, local);
+  try { if(currentUser) await sb.from(tabela).delete().eq('id',id); } catch(e){}
+}
+
+async function carregarTabela(tabela, ordem='id'){
+  const key = lsKey(tabela);
+  // Tenta Supabase primeiro
+  try {
+    if(currentUser){
+      const q = sb.from(tabela).select('*').eq('user_id', currentUser.id);
+      if(ordem) q.order(ordem, {ascending:false});
+      const {data, error} = await q;
+      if(!error && data){
+        LS.set(key, data);
+        return data;
+      }
+    }
+  } catch(e){}
+  // Fallback local
+  return LS.get(key);
+}
+
+// ── HELPERS ─────────────────────────────────────────────────────────────────
+const fmt = v => 'R$ ' + v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const esc = s => { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; };
+const pad = n => n.toString().padStart(2,'0');
+const hoje = () => { const d=new Date(); return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear(); };
+const mesAtual = () => { const d=new Date(); return pad(d.getMonth()+1)+'/'+d.getFullYear(); };
+const uid = () => Date.now() + Math.floor(Math.random()*999);
+const getRepasse = () => userMeta.repasse ? parseFloat(userMeta.repasse) : 0;
+
+function showToast(msg,color){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.style.background=color||'var(--green)'; t.style.color=color?'#fff':'#0d1117';
+  t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+// ── AUTH ────────────────────────────────────────────────────────────────────
+function switchTab(tab){
+  document.getElementById('tab-login').classList.toggle('active', tab==='login');
+  document.getElementById('tab-signup').classList.toggle('active', tab==='signup');
+  document.getElementById('form-login').style.display = tab==='login'?'block':'none';
+  document.getElementById('form-signup').style.display = tab==='signup'?'block':'none';
+  document.getElementById('auth-erro').style.display = 'none';
+}
+
+async function fazerLogin(){
+  const email = document.getElementById('login-email').value.trim();
+  const senha = document.getElementById('login-senha').value;
+  const erro = document.getElementById('auth-erro');
+  if(!email||!senha){erro.textContent='Preencha email e senha.';erro.style.display='block';return;}
+  const {error} = await sb.auth.signInWithPassword({email, password: senha});
+  if(error){erro.textContent=error.message;erro.style.display='block';}
+}
+
+async function fazerCadastro(){
+  const nome=document.getElementById('signup-nome').value.trim();
+  const email=document.getElementById('signup-email').value.trim();
+  const senha=document.getElementById('signup-senha').value;
+  const espec=document.getElementById('signup-espec').value;
+  const erro=document.getElementById('auth-erro');
+  if(!nome||!email||!senha){erro.textContent='Preencha todos os campos.';erro.style.display='block';return;}
+  if(senha.length<6){erro.textContent='A senha precisa ter pelo menos 6 caracteres.';erro.style.display='block';return;}
+  const {data, error}=await sb.auth.signUp({email,password:senha,options:{data:{nome,espec,repasse:''}}});
+  if(error){erro.textContent=error.message;erro.style.background='rgba(248,113,113,.1)';erro.style.color='var(--red)';erro.style.display='block';}
+  else{
+    // Seed specialty procedures
+    if(data?.user){
+      const procs=(PROCS_ESPEC[espec]||PROCS_ESPEC['Outro']).map(p=>({...p,user_id:data.user.id}));
+      await sb.from('custom_procs').insert(procs);
+    }
+    erro.style.background='rgba(52,211,153,.1)';erro.style.color='var(--green)';
+    erro.textContent='✓ Conta criada! Verifique seu email para confirmar, depois entre.';
+    erro.style.display='block';
+    switchTab('login');
+    document.getElementById('login-email').value=email;
+  }
+}
+
+async function fazerLogout(){
+  await sb.auth.signOut();
+  currentUser=null; dados=[]; notas=[]; estq=[]; prots=[]; contas=[]; customProcs=[];
+  document.getElementById('app-screen').classList.remove('visible');
+  document.getElementById('auth-screen').classList.remove('hidden');
+}
+
+// Sempre começa mostrando login, verifica sessão depois
+document.getElementById('auth-screen').classList.remove('hidden');
+document.getElementById('app-screen').classList.remove('visible');
+
+sb.auth.onAuthStateChange(async (event, session) => {
+  if(session?.user){
+    currentUser = session.user;
+    userMeta = session.user.user_metadata || {};
+    document.getElementById('auth-screen').classList.add('hidden');
+    document.getElementById('app-screen').classList.add('visible');
+    await carregarTudo();
+  } else {
+    currentUser = null;
+    document.getElementById('app-screen').classList.remove('visible');
+    document.getElementById('auth-screen').classList.remove('hidden');
+  }
+});
+
+// Verifica se já tem sessão ativa
+sb.auth.getSession().then(({data:{session}})=>{
+  if(!session){
+    document.getElementById('auth-screen').classList.remove('hidden');
+    document.getElementById('app-screen').classList.remove('visible');
+  }
+});
+
+// ── CARREGAR DADOS ──────────────────────────────────────────────────────────
+async function carregarTudo(){
+  showToast('⏳ Carregando...','var(--accent)');
+  [dados, notas, estq, prots, contas, customProcs] = await Promise.all([
+    carregarTabela('procedimentos','id'),
+    carregarTabela('notas','id'),
+    carregarTabela('estoque',null),
+    carregarTabela('proteses',null),
+    carregarTabela('contas','id'),
+    carregarTabela('custom_procs',null),
+  ]);
+  buildProcOptions('inp-proc'); buildProcOptions('ep-proc',false);
+  renderPainel(); atualizarSaudacao(); renderConfig(); renderProcsLancar();
+  showToast('✓ Dados carregados!');
+}
+
+// ── DRAWER/NAV ──────────────────────────────────────────────────────────────
+function abrirDrawer(){document.getElementById('drawer').classList.add('open');document.getElementById('drawer-overlay').classList.add('open');}
+function fecharDrawer(){document.getElementById('drawer').classList.remove('open');document.getElementById('drawer-overlay').classList.remove('open');}
+
+function goTo(id,btn,title,sub){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.drawer-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById('pg-'+id).classList.add('active');
+  btn.classList.add('active');
+  document.getElementById('topbar-title').textContent='🦷 '+title;
+  document.getElementById('topbar-sub').textContent=sub;
+  fecharDrawer();
+  const renders={painel:renderPainel,hist:renderHist,resumo:renderResumo,
+    pacientes:renderPacientes, lancar:renderProcsLancar,
+    diario:renderDiario,estoque:renderEstoque,protese:renderProtese,contas:renderContas,config:renderConfig};
+  if(renders[id])renders[id]();
+}
+
+// ── MODAL ────────────────────────────────────────────────────────────────────
+function abrirModal(tipo,extra){
+  const pacs=[...new Set([...dados.map(d=>d.pac),...notas.map(n=>n.pac)])].sort();
+  ['dl-pacs','dl-pacs2'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=pacs.map(p=>`<option value="${esc(p)}">`).join('');});
+  if(tipo==='nota'){
+    document.getElementById('nota-pac').value=extra||'';
+    document.getElementById('nota-proc').value='';
+    document.getElementById('nota-data').value=hoje();
+    document.getElementById('nota-txt').value='';
+    document.getElementById('nota-titulo').textContent=extra?`Nova nota — ${extra}`:'Nova nota';
+    document.getElementById('ov-nota').classList.add('open');
+  } else if(tipo==='estoque'){
+    document.getElementById('estq-edit-id').value='';
+    document.getElementById('estq-nome').value='';
+    document.getElementById('estq-qty').value='';
+    document.getElementById('estq-min').value='2';
+    document.getElementById('estq-forn').value='';
+    document.getElementById('estq-titulo').textContent='Novo item';
+    document.getElementById('ov-estoque').classList.add('open');
+  } else if(tipo==='protese'){
+    document.getElementById('pr-edit-id').value='';
+    ['pr-pac','pr-lab','pr-val','pr-obs'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('pr-tipo').value='Coroa sobre implante';
+    document.getElementById('pr-env').value=hoje();
+    document.getElementById('pr-prev').value='';
+    document.getElementById('pr-status').value='lab';
+    document.getElementById('ov-protese').classList.add('open');
+  } else if(tipo==='conta'){
+    document.getElementById('ct-tipo').value=extra;
+    ['ct-desc','ct-val','ct-obs'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('ct-data').value=hoje();
+    document.getElementById('ct-status').value='pago';
+    const rec=extra==='receita';
+    document.getElementById('ct-titulo').textContent=rec?'Nova receita':'Nova despesa';
+    document.getElementById('ct-sub').textContent=rec?'Registrar entrada financeira':'Registrar saída financeira';
+    document.getElementById('ct-save-btn').className='btn '+(rec?'green':'ghost');
+    document.getElementById('ct-save-btn').style.cssText=rec?'':'border:1px solid rgba(248,113,113,.3);color:var(--red);margin-top:4px;';
+    document.getElementById('ov-conta').classList.add('open');
+  } else if(tipo==='gerenciarProcs'){
+    renderProcCustomList();
+    document.getElementById('cp-nome').value='';
+    document.getElementById('cp-val').value='';
+    document.getElementById('cp-custo').value='';
+    document.getElementById('ov-gerenciarProcs').classList.add('open');
+  }
+}
+function fecharModal(tipo){document.getElementById('ov-'+tipo).classList.remove('open');}
+
+// ── CUSTOM PROCS ─────────────────────────────────────────────────────────────
+function getAllProcs(){return customProcs;}
+function buildProcOptions(selectId,includeCustom=true){
+  const sel=document.getElementById(selectId);if(!sel)return;
+  const cur=sel.value;
+  const opts=customProcs.map(p=>`<option value="${esc(p.nome)}" data-v="${p.val}" data-c="${p.custo}">${esc(p.nome)}</option>`).join('');
+  sel.innerHTML='<option value="">Selecione...</option>'+opts+
+    (includeCustom?'<option value="custom" data-v="0" data-c="0">Outro (valor manual)</option>':'');
+  if(cur)sel.value=cur;
+}
+function renderProcCustomList(){
+  const el=document.getElementById('lista-procs-custom');if(!el)return;
+  if(!customProcs.length){
+    el.innerHTML='<div class="empty" style="padding:20px 0;">Nenhum procedimento cadastrado ainda.<br>Adicione abaixo! 👇</div>';return;
+  }
+  el.innerHTML=customProcs.map(p=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);">
+    <div><div style="font-size:13px;font-weight:500;">${esc(p.nome)}</div>
+    <div style="font-size:11px;color:var(--muted);">Valor: R$ ${Number(p.val).toLocaleString('pt-BR')} · Custo: R$ ${Number(p.custo).toLocaleString('pt-BR')}</div></div>
+    <button onclick="removerProcCustom(${p.id})" style="background:none;border:none;color:var(--red);font-size:20px;cursor:pointer;padding:0 8px;">×</button>
+  </div>`).join('');
+}
+async function adicionarProcCustom(){
+  const nome=document.getElementById('cp-nome').value.trim();
+  const val=parseFloat(document.getElementById('cp-val').value)||0;
+  const custo=parseFloat(document.getElementById('cp-custo').value)||0;
+  if(!nome){alert('Informe o nome.');return;}
+  const item=await salvarItem('custom_procs',{nome,val,custo});
+  customProcs.push(item);
+  document.getElementById('cp-nome').value='';document.getElementById('cp-val').value='';document.getElementById('cp-custo').value='';
+  buildProcOptions('inp-proc');buildProcOptions('ep-proc',false);
+  renderProcCustomList();showToast('✓ Procedimento adicionado!');renderProcsLancar();
+}
+async function removerProcCustom(id){
+  if(!confirm('Remover procedimento?'))return;
+  await deletarItem('custom_procs',id);
+  customProcs=customProcs.filter(p=>p.id!==id);
+  buildProcOptions('inp-proc');buildProcOptions('ep-proc',false);
+  renderProcCustomList();renderProcsLancar();showToast('Removido.','var(--red)');
+}
+
+// ── PAINEL ────────────────────────────────────────────────────────────────────
+let chartFat=null, chartTipos=null;
+function renderPainel(){
+  const mes=mesAtual(), dM=dados.filter(d=>d.data&&d.data.endsWith(mes));
+  document.getElementById('m-bruto').textContent=fmt(dM.reduce((s,d)=>s+d.val,0));
+  document.getElementById('m-liq').textContent=fmt(dM.reduce((s,d)=>s+d.liq,0));
+  document.getElementById('m-custo').textContent=fmt(dM.reduce((s,d)=>s+d.custo,0));
+  document.getElementById('m-qtd').textContent=dM.length+' procedimento'+(dM.length!==1?'s':'');
+  document.getElementById('m-repasse').textContent=userMeta.repasse?Math.round(getRepasse()*100)+'%':'Configurar →';
+  const mn=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  document.getElementById('sub-painel').textContent=mn[new Date().getMonth()]+' '+new Date().getFullYear();
+
+  // Gráfico 6 meses
+  const now=new Date();
+  const labels=[], brutos=[], liquidos=[];
+  for(let i=5;i>=0;i--){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const mm=pad(d.getMonth()+1)+'/'+d.getFullYear();
+    labels.push(mn[d.getMonth()].slice(0,3));
+    const dMes=dados.filter(x=>x.data&&x.data.endsWith(mm));
+    brutos.push(dMes.reduce((s,x)=>s+x.val,0));
+    liquidos.push(dMes.reduce((s,x)=>s+x.liq,0));
+  }
+  const cfgFat={type:'bar',data:{labels,datasets:[
+    {label:'Bruto',data:brutos,backgroundColor:'rgba(79,143,255,0.5)',borderColor:'rgba(79,143,255,1)',borderWidth:1,borderRadius:5},
+    {label:'Líquido',data:liquidos,backgroundColor:'rgba(52,211,153,0.5)',borderColor:'rgba(52,211,153,1)',borderWidth:1,borderRadius:5},
+  ]},options:{responsive:true,plugins:{legend:{labels:{color:'#6b7a99',font:{size:11}}}},scales:{x:{ticks:{color:'#6b7a99'},grid:{color:'rgba(255,255,255,0.05)'}},y:{ticks:{color:'#6b7a99',callback:v=>'R$'+v.toLocaleString('pt-BR')},grid:{color:'rgba(255,255,255,0.05)'}}}}};
+  const ctxFat=document.getElementById('chart-fat');
+  if(chartFat)chartFat.destroy();
+  chartFat=new Chart(ctxFat,cfgFat);
+
+  // Gráfico por tipo
+  const tipoMap={};
+  dM.forEach(d=>{tipoMap[d.proc]=(tipoMap[d.proc]||0)+1;});
+  const tipoLabels=Object.keys(tipoMap), tipoData=Object.values(tipoMap);
+  const cores=['#4f8fff','#34d399','#fbbf24','#f87171','#a78bfa','#2dd4bf','#fb923c'];
+  const ctxTipos=document.getElementById('chart-tipos');
+  if(chartTipos)chartTipos.destroy();
+  if(tipoLabels.length){
+    chartTipos=new Chart(ctxTipos,{type:'doughnut',data:{labels:tipoLabels,datasets:[{data:tipoData,backgroundColor:cores.slice(0,tipoLabels.length),borderWidth:0}]},options:{responsive:true,plugins:{legend:{position:'bottom',labels:{color:'#6b7a99',font:{size:10},padding:10}}}}});
+  } else {
+    ctxTipos.getContext('2d').clearRect(0,0,ctxTipos.width,ctxTipos.height);
+  }
+
+  // Lista recente
+  const ul=document.getElementById('lista-painel');
+  if(!dados.length){
+    ul.innerHTML=`<div class="card" style="border-color:rgba(79,143,255,.3);background:rgba(79,143,255,.05);">
+      <div style="font-size:15px;font-weight:600;margin-bottom:8px;">👋 Bem-vindo ao Implanto!</div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.8;margin-bottom:14px;">
+        Para começar:<br>
+        1️⃣ <b>Configurações</b> → informe seu % de repasse<br>
+        2️⃣ <b>Novo Procedimento</b> → lance seu primeiro atendimento<br>
+        3️⃣ Acompanhe tudo aqui no dashboard!
+      </div>
+      <button class="btn blue" style="margin-top:0;" onclick="goTo('config',document.getElementById('di-config'),'Configurações','perfil e preferências')">Configurar agora →</button>
+    </div>`;
+    return;
+  }
+  ul.innerHTML=[...dados].slice(0,6).map(d=>`<div class="card"><div class="card-row">
+    <div><div class="card-title">${esc(d.pac)}</div><div class="card-sub">${esc(d.proc)} · ${d.data}</div></div>
+    <div class="card-right"><div style="font-size:13px;font-weight:600;color:var(--accent)">${fmt(d.val)}</div><div style="font-size:11px;color:var(--green);margin-top:2px">+${fmt(d.liq)}</div></div>
+  </div></div>`).join('');
+}
+
+// ── PDF EXPORT ────────────────────────────────────────────────────────────────
+function exportarPDF(){
+  const mn=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const now=new Date();
+  const mes=mesAtual();
+  const nomeMes=mn[now.getMonth()]+' '+now.getFullYear();
+  const dM=dados.filter(d=>d.data&&d.data.endsWith(mes));
+  const bruto=dM.reduce((s,d)=>s+d.val,0);
+  const liq=dM.reduce((s,d)=>s+d.liq,0);
+  const custo=dM.reduce((s,d)=>s+d.custo,0);
+  const nome=userMeta.nome||'Profissional';
+  const rep=userMeta.repasse?Math.round(getRepasse()*100)+'%':'–';
+
+  const linhas=dM.map(d=>`
+    <tr>
+      <td>${d.data}</td>
+      <td>${d.pac}</td>
+      <td>${d.proc}</td>
+      <td style="text-align:right">R$ ${d.val.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+      <td style="text-align:right;color:#ef4444">R$ ${d.custo.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+      <td style="text-align:right;color:#22c55e;font-weight:600">R$ ${d.liq.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+    </tr>`).join('');
+
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <style>
+    body{font-family:Arial,sans-serif;color:#1a1a1a;padding:40px;max-width:900px;margin:0 auto;}
+    h1{font-size:24px;color:#1d4ed8;margin-bottom:4px;}
+    .sub{color:#6b7280;font-size:14px;margin-bottom:32px;}
+    .metrics{display:flex;gap:20px;margin-bottom:32px;}
+    .metric{flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;}
+    .metric-lbl{font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+    .metric-val{font-size:22px;font-weight:700;}
+    .metric-val.b{color:#1d4ed8}.metric-val.g{color:#16a34a}.metric-val.r{color:#dc2626}
+    table{width:100%;border-collapse:collapse;font-size:13px;}
+    th{background:#1d4ed8;color:#fff;padding:10px 12px;text-align:left;}
+    td{padding:9px 12px;border-bottom:1px solid #f1f5f9;}
+    tr:nth-child(even) td{background:#f8fafc;}
+    .total-row td{font-weight:700;background:#eff6ff;border-top:2px solid #1d4ed8;}
+    .footer{margin-top:32px;font-size:11px;color:#9ca3af;text-align:center;}
+  </style></head><body>
+  <h1>🦷 Relatório Implanto</h1>
+  <div class="sub">${nome} · ${nomeMes} · Repasse: ${rep}</div>
+  <div class="metrics">
+    <div class="metric"><div class="metric-lbl">Total Bruto</div><div class="metric-val b">R$ ${bruto.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div></div>
+    <div class="metric"><div class="metric-lbl">Custos</div><div class="metric-val r">R$ ${custo.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div></div>
+    <div class="metric"><div class="metric-lbl">Líquido Total</div><div class="metric-val g">R$ ${liq.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div></div>
+    <div class="metric"><div class="metric-lbl">Procedimentos</div><div class="metric-val b">${dM.length}</div></div>
+  </div>
+  <table>
+    <thead><tr><th>Data</th><th>Paciente</th><th>Procedimento</th><th style="text-align:right">Bruto</th><th style="text-align:right">Custo</th><th style="text-align:right">Líquido</th></tr></thead>
+    <tbody>${linhas}
+    <tr class="total-row">
+      <td colspan="3">TOTAL</td>
+      <td style="text-align:right">R$ ${bruto.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+      <td style="text-align:right">R$ ${custo.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+      <td style="text-align:right">R$ ${liq.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+    </tr>
+    </tbody>
+  </table>
+  <div class="footer">Gerado em ${new Date().toLocaleString('pt-BR')} · Implanto App</div>
+  </body></html>`;
+
+  const w=window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(()=>w.print(),500);
+}
+
+// ── LISTA PROCS NA ABA LANCAR ─────────────────────────────────────────────────
+function renderProcsLancar(){
+  const el=document.getElementById('lista-procs-lancar');
+  if(!el)return;
+  // Datalist para autocomplete de paciente
+  const dl=document.getElementById('dl-pacs-lancar');
+  if(dl){
+    const pacs=[...new Set(dados.map(d=>d.pac))].sort();
+    dl.innerHTML=pacs.map(p=>`<option value="${esc(p)}">`).join('');
+  }
+  if(!customProcs.length){
+    el.innerHTML='<div class="empty" style="padding:16px 0;">Nenhum procedimento cadastrado.<br>Toque em ⚙️ Gerenciar acima.</div>';
+    return;
+  }
+  el.innerHTML=customProcs.map(p=>`
+    <div class="card" style="cursor:pointer;" onclick="selecionarProc('${esc(p.nome)}')">
+      <div class="card-row">
+        <div style="flex:1">
+          <div class="card-title">${esc(p.nome)}</div>
+          <div class="card-sub">Valor: ${fmt(p.val)} · Custo: ${fmt(p.custo)}</div>
+        </div>
+        <div style="color:var(--green);font-weight:700;font-size:13px;">+${fmt(p.val*getRepasse()-p.custo)}<br><span style="font-size:10px;color:var(--muted);font-weight:400;">líquido</span></div>
+      </div>
+    </div>`).join('');
+}
+function selecionarProc(nome){
+  const sel=document.getElementById('inp-proc');
+  sel.value=nome;
+  document.getElementById('manual-wrap').style.display='none';
+  calcPrev();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ── LANÇAR ───────────────────────────────────────────────────────────────────
+function onProcChange(){
+  document.getElementById('manual-wrap').style.display=document.getElementById('inp-proc').value==='custom'?'block':'none';
+  calcPrev();
+}
+function getVals(){
+  const sel=document.getElementById('inp-proc');
+  if(!sel.value)return null;
+  if(sel.value==='custom')return{v:parseFloat(document.getElementById('inp-val').value)||0,c:parseFloat(document.getElementById('inp-custo-m').value)||0,nome:'Outro'};
+  const o=sel.options[sel.selectedIndex];
+  return{v:parseFloat(o.dataset.v),c:parseFloat(o.dataset.c),nome:sel.value};
+}
+function calcPrev(){
+  const v=getVals();
+  if(!v){document.getElementById('preview').style.display='none';return;}
+  const rep=v.v*getRepasse(), liq=rep-v.c;
+  document.getElementById('preview').style.display='block';
+  const pct=document.getElementById('pv-pct');if(pct)pct.textContent=Math.round(getRepasse()*100);
+  document.getElementById('pv-b').textContent=fmt(v.v);
+  document.getElementById('pv-r').textContent=fmt(rep);
+  document.getElementById('pv-c').textContent=v.c>0?'− '+fmt(v.c):'R$ 0,00';
+  document.getElementById('pv-l').textContent=fmt(liq);
+}
+async function salvar(){
+  const pac=document.getElementById('inp-pac').value.trim(), v=getVals();
+  if(!pac){alert('Informe o paciente.');return;}
+  if(!v||v.v===0){alert('Selecione o procedimento.');return;}
+  const obj={pac,proc:v.nome,val:v.v,custo:v.c,liq:v.v*getRepasse()-v.c,data:hoje()};
+  const item=await salvarItem('procedimentos',obj);
+  dados.unshift(item);
+  limparForm();showToast('✓ Procedimento salvo!');renderPainel();
+}
+function limparForm(){
+  ['inp-pac','inp-proc','inp-val','inp-custo-m'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  document.getElementById('manual-wrap').style.display='none';
+  document.getElementById('preview').style.display='none';
+}
+
+// ── HISTÓRICO ────────────────────────────────────────────────────────────────
+function renderHist(){
+  const ul=document.getElementById('lista-hist');
+  if(!dados.length){ul.innerHTML='<div class="empty">Nenhum procedimento ainda.</div>';return;}
+  ul.innerHTML=dados.map(d=>`<div class="card"><div class="card-row">
+    <div style="flex:1"><div class="card-title">${esc(d.pac)}</div>
+      <div class="card-sub">${esc(d.proc)} · ${fmt(d.val)}</div>
+      <div class="card-sub">${d.data} · custo ${fmt(d.custo)}</div></div>
+    <div class="card-right">
+      <div style="font-size:15px;font-weight:600;color:var(--green)">+${fmt(d.liq)}</div>
+      <div style="display:flex;gap:6px;margin-top:8px;">
+        <button class="qty-btn" style="font-size:12px;padding:6px 12px;color:var(--accent);" onclick="abrirEdicaoProc(${d.id})">✏️ Editar</button>
+        <button class="qty-btn" style="font-size:12px;padding:6px 10px;color:var(--red);" onclick="delProc(${d.id})">🗑</button>
+      </div>
+    </div>
+  </div></div>`).join('');
+}
+function abrirEdicaoProc(id){
+  const d=dados.find(x=>x.id===id);if(!d)return;
+  document.getElementById('ep-id').value=id;
+  document.getElementById('ep-pac').value=d.pac;
+  document.getElementById('ep-val').value=d.val;
+  document.getElementById('ep-custo').value=d.custo;
+  document.getElementById('ep-data').value=d.data;
+  const sel=document.getElementById('ep-proc');
+  let found=false;
+  for(let o of sel.options){if(o.value===d.proc){sel.value=d.proc;found=true;break;}}
+  if(!found)sel.value='custom';
+  calcEpPrev();
+  document.getElementById('ov-editproc').classList.add('open');
+}
+function onEpChange(){calcEpPrev();}
+function calcEpPrev(){
+  const val=parseFloat(document.getElementById('ep-val').value)||0;
+  const custo=parseFloat(document.getElementById('ep-custo').value)||0;
+  document.getElementById('ep-pv-r').textContent=fmt(val*getRepasse());
+  document.getElementById('ep-pv-l').textContent=fmt(val*getRepasse()-custo);
+}
+async function salvarEdicaoProc(){
+  const id=parseInt(document.getElementById('ep-id').value);
+  const pac=document.getElementById('ep-pac').value.trim();
+  const val=parseFloat(document.getElementById('ep-val').value)||0;
+  const custo=parseFloat(document.getElementById('ep-custo').value)||0;
+  if(!pac){alert('Informe o paciente.');return;}
+  if(!val){alert('Informe o valor.');return;}
+  const sel=document.getElementById('ep-proc');
+  const proc=sel.value==='custom'?'Outro':sel.value;
+  const liq=val*getRepasse()-custo;
+  const data_val=document.getElementById('ep-data').value;
+  await atualizarItem('procedimentos',id,{pac,proc,val,custo,liq,data:data_val});
+  const d=dados.find(x=>x.id===id);
+  if(d)Object.assign(d,{pac,proc,val,custo,liq,data:data_val});
+  fecharModal('editproc');showToast('✓ Procedimento atualizado!');renderHist();renderPainel();
+}
+async function delProc(id){
+  if(!confirm('Excluir este procedimento?'))return;
+  await deletarItem('procedimentos',id);
+  dados=dados.filter(x=>x.id!==id);renderHist();renderPainel();showToast('Removido.','var(--red)');
+}
+
+// ── PACIENTES ────────────────────────────────────────────────────────────────
+function renderPacientes(){
+  const busca=(document.getElementById('busca-pac-lista').value||'').toLowerCase();
+  const map={};
+  dados.forEach(d=>{if(!map[d.pac])map[d.pac]={procs:[],notas:[]};map[d.pac].procs.push(d);});
+  notas.forEach(n=>{if(!map[n.pac])map[n.pac]={procs:[],notas:[]};map[n.pac].notas.push(n);});
+  const pacs=Object.keys(map).filter(p=>!busca||p.toLowerCase().includes(busca)).sort();
+  const el=document.getElementById('lista-pacientes');
+  if(!pacs.length){el.innerHTML='<div class="empty">Nenhum paciente ainda.<br>Lance um procedimento para começar.</div>';return;}
+  el.innerHTML=pacs.map(pac=>{
+    const d=map[pac];
+    const total=d.procs.reduce((s,p)=>s+p.liq,0);
+    const ultimo=d.procs.length?d.procs.sort((a,b)=>b.id-a.id)[0].data:'–';
+    return `<div class="card" style="cursor:pointer;" onclick="abrirPasta('${esc(pac)}')">
+      <div class="card-row">
+        <div style="display:flex;align-items:center;gap:12px;flex:1;">
+          <div style="width:40px;height:40px;border-radius:50%;background:rgba(79,143,255,.15);border:1.5px solid rgba(79,143,255,.3);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:var(--accent);flex-shrink:0;">${esc(pac).charAt(0).toUpperCase()}</div>
+          <div>
+            <div class="card-title">${esc(pac)}</div>
+            <div class="card-sub">${d.procs.length} proc. · ${d.notas.length} nota${d.notas.length!==1?'s':''} · último: ${ultimo}</div>
+          </div>
+        </div>
+        <div class="card-right">
+          <div style="font-size:13px;font-weight:600;color:var(--green)">${fmt(total)}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px;">líquido total</div>
+          <div style="font-size:18px;color:var(--muted);margin-top:4px;">›</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function abrirPasta(pac){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.drawer-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById('pg-pasta-pac').classList.add('active');
+  document.getElementById('topbar-title').textContent='🦷 Paciente';
+  document.getElementById('topbar-sub').textContent=pac;
+  document.getElementById('pasta-pac-nome').textContent=pac;
+  // Metrics
+  const pProcs=dados.filter(d=>d.pac===pac);
+  const pNotas=notas.filter(n=>n.pac===pac);
+  const totalBruto=pProcs.reduce((s,d)=>s+d.val,0);
+  const totalLiq=pProcs.reduce((s,d)=>s+d.liq,0);
+  document.getElementById('pasta-metrics').innerHTML=`
+    <div class="metric"><div class="metric-lbl">Procedimentos</div><div class="metric-val b">${pProcs.length}</div></div>
+    <div class="metric"><div class="metric-lbl">Total líquido</div><div class="metric-val g">${fmt(totalLiq)}</div></div>
+    <div class="metric"><div class="metric-lbl">Total bruto</div><div class="metric-val a">${fmt(totalBruto)}</div></div>
+    <div class="metric"><div class="metric-lbl">Notas clínicas</div><div class="metric-val p">${pNotas.length}</div></div>
+  `;
+  document.getElementById('pasta-pac-sub').textContent=`${pProcs.length} procedimentos · ${pNotas.length} notas`;
+  // Timeline: merge procs + notas sorted by id desc
+  const eventos=[
+    ...pProcs.map(p=>({tipo:'proc',data:p.data,id:p.id,obj:p})),
+    ...pNotas.map(n=>({tipo:'nota',data:n.data,id:n.id,obj:n})),
+  ].sort((a,b)=>b.id-a.id);
+  const tl=document.getElementById('pasta-timeline');
+  if(!eventos.length){tl.innerHTML='<div class="empty">Nenhum registro ainda.</div>';return;}
+  tl.innerHTML=eventos.map((ev,i)=>{
+    const isLast=i===eventos.length-1;
+    let dot,tipo,titulo,detalhe;
+    if(ev.tipo==='proc'){
+      dot='var(--accent)';tipo='💰 Procedimento';
+      titulo=esc(ev.obj.proc);
+      detalhe=`Bruto: ${fmt(ev.obj.val)} · Líquido: <span style="color:var(--green);font-weight:600;">${fmt(ev.obj.liq)}</span>`;
+    } else {
+      dot='var(--purple)';tipo='📋 Nota Clínica';
+      titulo=ev.obj.proc?esc(ev.obj.proc):'Evolução';
+      detalhe=`<span style="white-space:pre-wrap;">${esc(ev.obj.txt)}</span>`;
+    }
+    return `<div class="tl-item">
+      <div class="tl-line">
+        <div class="tl-dot" style="background:${dot};"></div>
+        ${!isLast?'<div class="tl-connector"></div>':''}
+      </div>
+      <div class="tl-content">
+        <div class="tl-date">${ev.data||''}</div>
+        <div class="tl-card">
+          <div class="tl-tipo" style="color:${dot};">${tipo}</div>
+          <div class="tl-titulo">${titulo}</div>
+          <div class="tl-detalhe">${detalhe}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function abrirNovoProc(){
+  const pac=document.getElementById('pasta-pac-nome').textContent;
+  goTo('lancar',document.getElementById('di-lancar'),'Novo Procedimento','novo lançamento');
+  setTimeout(()=>{document.getElementById('inp-pac').value=pac;calcPrev();},50);
+}
+
+// ── RESUMO ───────────────────────────────────────────────────────────────────
+function renderResumo(){
+  const map={};
+  dados.forEach(d=>{if(!map[d.proc])map[d.proc]={t:0,n:0};map[d.proc].t+=d.liq;map[d.proc].n++;});
+  const list=Object.entries(map).map(([k,v])=>({nome:k,med:v.t/v.n})).sort((a,b)=>b.med-a.med);
+  const el=document.getElementById('lista-resumo');
+  if(!list.length){el.innerHTML='<div class="empty">Sem dados ainda.</div>';return;}
+  const max=list[0].med;
+  const cl=['var(--accent)','var(--green)','var(--amber)','var(--red)','var(--purple)'];
+  el.innerHTML=list.map((it,i)=>`<div style="margin-bottom:16px;">
+    <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px;">
+      <span>${esc(it.nome)}</span><span style="color:var(--green);font-weight:500">${fmt(it.med)} / proc</span>
+    </div>
+    <div style="background:var(--s3);border-radius:6px;height:8px;overflow:hidden;">
+      <div style="width:${Math.round(it.med/max*100)}%;height:100%;border-radius:6px;background:${cl[i%cl.length]};"></div>
+    </div>
+  </div>`).join('');
+}
+
+// ── DIÁRIO ───────────────────────────────────────────────────────────────────
+function renderDiario(){
+  const busca=(document.getElementById('busca-pac').value||'').toLowerCase();
+  const map={};
+  notas.forEach(n=>{if(!map[n.pac])map[n.pac]=[];map[n.pac].push(n);});
+  dados.forEach(d=>{if(!map[d.pac])map[d.pac]=[];});
+  const pacs=Object.keys(map).filter(p=>!busca||p.toLowerCase().includes(busca)).sort();
+  const el=document.getElementById('lista-diario');
+  if(!pacs.length){el.innerHTML='<div class="empty">Nenhum paciente encontrado.</div>';return;}
+  el.innerHTML=pacs.map(pac=>{
+    const ns=(map[pac]||[]).sort((a,b)=>b.id-a.id);
+    const notasHtml=ns.length?ns.map(n=>`<div class="nota-item">
+      <button class="nota-del" onclick="delNota(${n.id})">×</button>
+      <div class="nota-data">${n.data}${n.proc?' · <span style="color:var(--accent)">'+esc(n.proc)+'</span>':''}</div>
+      <div class="nota-txt">${esc(n.txt)}</div>
+    </div>`).join(''):'<p style="font-size:12px;color:var(--muted);padding:4px 0 8px;">Nenhuma nota ainda.</p>';
+    return `<div class="coll-card">
+      <div class="coll-head" onclick="this.closest('.coll-card').classList.toggle('open')">
+        <div><div class="coll-name">${esc(pac)}</div><div class="coll-sub">${ns.length} nota${ns.length!==1?'s':''}</div></div>
+        <span class="tag p">${ns.length}</span>
+      </div>
+      <div class="coll-body">${notasHtml}<button class="add-btn" onclick="abrirModal('nota','${esc(pac)}')">+ Adicionar nota para ${esc(pac)}</button></div>
+    </div>`;
+  }).join('');
+}
+async function salvarNota(){
+  const pac=document.getElementById('nota-pac').value.trim();
+  const txt=document.getElementById('nota-txt').value.trim();
+  if(!pac){alert('Informe o paciente.');return;}
+  if(!txt){alert('Escreva as anotações.');return;}
+  const obj={pac,proc:document.getElementById('nota-proc').value,data:document.getElementById('nota-data').value||hoje(),txt};
+  const item=await salvarItem('notas',obj);
+  notas.unshift(item);fecharModal('nota');showToast('✓ Nota salva!');renderDiario();
+}
+async function delNota(id){
+  if(!confirm('Excluir esta nota?'))return;
+  await deletarItem('notas',id);
+  notas=notas.filter(n=>n.id!==id);renderDiario();showToast('Nota excluída.','var(--red)');
+}
+
+// ── VOZ ──────────────────────────────────────────────────────────────────────
+let mediaRec=null, audioChunks=[];
+async function toggleMic(){
+  const btn=document.getElementById('mic-btn');
+  const lbl=document.getElementById('mic-label');
+  const status=document.getElementById('mic-status');
+  if(mediaRec&&mediaRec.state==='recording'){mediaRec.stop();return;}
+  if(!navigator.mediaDevices){alert('Seu navegador não suporta gravação de áudio.');return;}
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    audioChunks=[];
+    mediaRec=new MediaRecorder(stream);
+    mediaRec.ondataavailable=e=>{if(e.data.size>0)audioChunks.push(e.data);};
+    mediaRec.onstop=async()=>{
+      stream.getTracks().forEach(t=>t.stop());
+      btn.style.color='var(--muted)';btn.style.borderColor='';
+      lbl.textContent='Gravar';status.style.display='none';
+      const blob=new Blob(audioChunks,{type:'audio/webm'});
+      lbl.textContent='Transcrevendo...';btn.disabled=true;
+      try{
+        const reader=new FileReader();
+        reader.onload=async()=>{
+          const b64=reader.result.split(',')[1];
+          const resp=await fetch('https://api.anthropic.com/v1/messages',{
+            method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,
+              messages:[{role:'user',content:[
+                {type:'document',source:{type:'base64',media_type:'audio/webm',data:b64}},
+                {type:'text',text:'Transcreva exatamente o que foi dito. Retorne apenas a transcrição.'}
+              ]}]})
+          });
+          const d=await resp.json();
+          const txt=d.content?.find(c=>c.type==='text')?.text||'';
+          const ta=document.getElementById('nota-txt');
+          ta.value=(ta.value?ta.value+'\n':'')+txt;
+        };
+        reader.readAsDataURL(blob);
+      }catch(e){showToast('Erro na transcrição.','var(--red)');}
+      finally{setTimeout(()=>{lbl.textContent='Gravar';btn.disabled=false;},1500);}
+    };
+    mediaRec.start();
+    btn.style.color='var(--red)';btn.style.borderColor='var(--red)';
+    lbl.textContent='Parar';status.style.display='flex';
+  }catch(e){alert('Permissão de microfone negada.');}
+}
+
+// ── ESTOQUE ──────────────────────────────────────────────────────────────────
+function renderEstoque(){
+  const busca=(document.getElementById('busca-estq').value||'').toLowerCase();
+  const list=estq.filter(e=>!busca||e.nome.toLowerCase().includes(busca));
+  document.getElementById('eq-total').textContent=estq.length;
+  document.getElementById('eq-low').textContent=estq.filter(e=>e.qty<=e.min).length;
+  const el=document.getElementById('lista-estoque');
+  if(!list.length){el.innerHTML='<div class="empty">Nenhum item cadastrado.</div>';return;}
+  el.innerHTML=list.map(e=>{
+    const st=e.qty===0?'r':e.qty<=e.min?'a':'g';
+    const lb=e.qty===0?'Sem estoque':e.qty<=e.min?'Estoque baixo':'OK';
+    return `<div class="card"><div class="card-row">
+      <div style="flex:1"><div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;"><span class="card-title">${esc(e.nome)}</span><span class="tag ${st}">${lb}</span></div>
+        <div class="card-sub">${esc(e.cat)}${e.forn?' · '+esc(e.forn):''}</div></div>
+      <div class="card-right"><div class="metric-val ${e.qty===0?'r':e.qty<=e.min?'a':'g'}" style="font-size:22px">${e.qty}</div>
+        <div style="font-size:10px;color:var(--muted)">mín. ${e.min}</div></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <button class="qty-btn" style="color:var(--red);" onclick="ajustarQty(${e.id},-1)">− Usar 1</button>
+      <button class="qty-btn" style="color:var(--green);" onclick="ajustarQty(${e.id},+1)">+ Repor 1</button>
+      <button class="qty-btn" style="flex:0.4;font-size:11px;" onclick="editarEstoque(${e.id})">✏️</button>
+      <button class="qty-btn" style="flex:0.4;font-size:11px;color:var(--red);" onclick="delEstoque(${e.id})">🗑</button>
+    </div></div>`;
+  }).join('');
+}
+async function ajustarQty(id,delta){
+  const e=estq.find(x=>x.id===id);if(!e)return;
+  const newQty=Math.max(0,e.qty+delta);
+  await atualizarItem('estoque',id,{qty:newQty});
+  e.qty=newQty;renderEstoque();
+}
+async function salvarEstoque(){
+  const nome=document.getElementById('estq-nome').value.trim();
+  if(!nome){alert('Informe o nome do item.');return;}
+  const editId=parseInt(document.getElementById('estq-edit-id').value)||0;
+  const obj={nome,cat:document.getElementById('estq-cat').value,qty:parseInt(document.getElementById('estq-qty').value)||0,min:parseInt(document.getElementById('estq-min').value)||0,forn:document.getElementById('estq-forn').value.trim()};
+  if(editId){
+    await atualizarItem('estoque',editId,obj);
+    const e=estq.find(x=>x.id===editId);if(e)Object.assign(e,obj);
+  } else {
+    const item=await salvarItem('estoque',obj);
+    estq.push(item);
+  }
+  fecharModal('estoque');showToast('✓ Item salvo!');renderEstoque();
+}
+function editarEstoque(id){
+  const e=estq.find(x=>x.id===id);if(!e)return;
+  document.getElementById('estq-edit-id').value=id;
+  document.getElementById('estq-nome').value=e.nome;
+  document.getElementById('estq-cat').value=e.cat;
+  document.getElementById('estq-qty').value=e.qty;
+  document.getElementById('estq-min').value=e.min;
+  document.getElementById('estq-forn').value=e.forn||'';
+  document.getElementById('estq-titulo').textContent='Editar item';
+  document.getElementById('ov-estoque').classList.add('open');
+}
+async function delEstoque(id){
+  if(!confirm('Remover item?'))return;
+  await deletarItem('estoque',id);
+  estq=estq.filter(x=>x.id!==id);renderEstoque();showToast('Removido.','var(--red)');
+}
+
+// ── PRÓTESE ──────────────────────────────────────────────────────────────────
+const prLbl={lab:'No laboratório',pronto:'Pronto ✓',entregue:'Entregue',ajuste:'Em ajuste'};
+const prTag={lab:'b',pronto:'g',entregue:'t',ajuste:'a'};
+function renderProtese(){
+  document.getElementById('pr-ativos').textContent=prots.filter(p=>p.status==='lab'||p.status==='ajuste').length;
+  document.getElementById('pr-prontos').textContent=prots.filter(p=>p.status==='pronto').length;
+  const el=document.getElementById('lista-protese');
+  if(!prots.length){el.innerHTML='<div class="empty">Nenhum trabalho cadastrado.</div>';return;}
+  const ord={pronto:0,ajuste:1,lab:2,entregue:3};
+  el.innerHTML=[...prots].sort((a,b)=>(ord[a.status]||0)-(ord[b.status]||0)).map(p=>{
+    const opts=Object.entries(prLbl).filter(([k])=>k!==p.status).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
+    return `<div class="card">
+      <div style="display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;">
+        <div style="flex:1"><div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:4px;"><span class="card-title">${esc(p.pac)}</span><span class="tag ${prTag[p.status]||'b'}">${prLbl[p.status]||p.status}</span></div>
+          <div class="card-sub">${esc(p.tipo)}</div>
+          <div class="card-sub">${esc(p.lab)}${p.val?' · R$ '+p.val:''}</div>
+          ${p.env?`<div class="card-sub">Envio: ${p.env}${p.prev?' · Prev: '+p.prev:''}</div>`:''}
+          ${p.obs?`<div class="card-sub" style="font-style:italic">${esc(p.obs)}</div>`:''}
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <select style="flex:1;font-size:12px;padding:8px 10px;" onchange="mudarStatusProt(${p.id},this.value)"><option value="">Mudar status...</option>${opts}</select>
+        <button class="qty-btn" style="flex:0.4;font-size:11px;" onclick="editarProt(${p.id})">✏️</button>
+        <button class="qty-btn" style="flex:0.4;font-size:11px;color:var(--red);" onclick="delProt(${p.id})">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+async function mudarStatusProt(id,status){
+  if(!status)return;
+  await atualizarItem('proteses',id,{status});
+  const p=prots.find(x=>x.id===id);if(p)p.status=status;
+  renderProtese();showToast('Status atualizado!');
+}
+async function salvarProtese(){
+  const pac=document.getElementById('pr-pac').value.trim(),lab=document.getElementById('pr-lab').value.trim();
+  if(!pac){alert('Informe o paciente.');return;}if(!lab){alert('Informe o laboratório.');return;}
+  const editId=parseInt(document.getElementById('pr-edit-id').value)||0;
+  const obj={pac,tipo:document.getElementById('pr-tipo').value,lab,env:document.getElementById('pr-env').value,prev:document.getElementById('pr-prev').value,val:parseFloat(document.getElementById('pr-val').value)||0,status:document.getElementById('pr-status').value,obs:document.getElementById('pr-obs').value.trim()};
+  if(editId){
+    await atualizarItem('proteses',editId,obj);
+    const p=prots.find(x=>x.id===editId);if(p)Object.assign(p,obj);
+  } else {
+    const item=await salvarItem('proteses',obj);
+    prots.push(item);
+  }
+  fecharModal('protese');showToast('✓ Trabalho salvo!');renderProtese();
+}
+function editarProt(id){
+  const p=prots.find(x=>x.id===id);if(!p)return;
+  document.getElementById('pr-edit-id').value=id;
+  document.getElementById('pr-pac').value=p.pac;document.getElementById('pr-tipo').value=p.tipo;
+  document.getElementById('pr-lab').value=p.lab;document.getElementById('pr-env').value=p.env||'';
+  document.getElementById('pr-prev').value=p.prev||'';document.getElementById('pr-val').value=p.val||'';
+  document.getElementById('pr-status').value=p.status;document.getElementById('pr-obs').value=p.obs||'';
+  document.getElementById('ov-protese').classList.add('open');
+}
+async function delProt(id){
+  if(!confirm('Remover?'))return;
+  await deletarItem('proteses',id);
+  prots=prots.filter(x=>x.id!==id);renderProtese();showToast('Removido.','var(--red)');
+}
+
+// ── CONTAS ───────────────────────────────────────────────────────────────────
+const ctLbl={pago:'Pago',pendente:'Pendente',atrasado:'Atrasado'};
+const ctTag={pago:'g',pendente:'a',atrasado:'r'};
+function renderContas(){
+  const rec=contas.filter(c=>c.tipo==='receita').reduce((s,c)=>s+c.val,0);
+  const desp=contas.filter(c=>c.tipo==='despesa').reduce((s,c)=>s+c.val,0);
+  const saldo=rec-desp;
+  document.getElementById('ct-rec').textContent=fmt(rec);
+  document.getElementById('ct-desp').textContent=fmt(desp);
+  const sv2=document.getElementById('ct-saldo');
+  sv2.textContent=fmt(Math.abs(saldo));sv2.style.color=saldo>=0?'var(--green)':'var(--red)';
+  const el=document.getElementById('lista-contas');
+  if(!contas.length){el.innerHTML='<div class="empty">Nenhuma conta lançada ainda.</div>';return;}
+  el.innerHTML=contas.map(c=>`<div class="card"><div class="card-row">
+    <div style="flex:1"><div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;"><span class="card-title">${esc(c.desc||c['desc']||'')}</span><span class="tag ${ctTag[c.status]||'a'}">${ctLbl[c.status]||c.status}</span></div>
+      <div class="card-sub">${c.cat} · ${c.data}${c.obs?' · '+esc(c.obs):''}</div></div>
+    <div class="card-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+      <div style="font-size:15px;font-weight:600;color:${c.tipo==='receita'?'var(--green)':'var(--red)'}">${c.tipo==='receita'?'+':'−'}${fmt(c.val)}</div>
+      <button class="qty-btn" style="font-size:11px;padding:5px 10px;color:var(--red);" onclick="delConta(${c.id})">🗑</button>
+    </div>
+  </div></div>`).join('');
+}
+async function salvarConta(){
+  const descVal=document.getElementById('ct-desc').value.trim(),val=parseFloat(document.getElementById('ct-val').value)||0;
+  if(!descVal){alert('Informe a descrição.');return;}if(!val){alert('Informe o valor.');return;}
+  const obj={tipo:document.getElementById('ct-tipo').value,desc:descVal,val,data:document.getElementById('ct-data').value||hoje(),cat:document.getElementById('ct-cat').value,status:document.getElementById('ct-status').value,obs:document.getElementById('ct-obs').value.trim()};
+  const item=await salvarItem('contas',obj);
+  contas.unshift(item);fecharModal('conta');showToast('✓ Conta salva!');renderContas();
+}
+async function delConta(id){
+  if(!confirm('Excluir?'))return;
+  await deletarItem('contas',id);
+  contas=contas.filter(c=>c.id!==id);renderContas();showToast('Removido.','var(--red)');
+}
+
+// ── CONFIGURAÇÕES ────────────────────────────────────────────────────────────
+function renderConfig(){
+  const nome=userMeta.nome||'';
+  const rep=getRepasse();
+  const espec=userMeta.espec||'Implantodontista';
+  document.getElementById('cfg-nome').value=nome;
+  document.getElementById('cfg-repasse').value=Math.round(rep*100);
+  document.getElementById('cfg-nome-display').textContent=nome||'Seu nome';
+  document.getElementById('cfg-espec-display').textContent=espec;
+  document.getElementById('cfg-avatar').textContent=nome?nome.charAt(0).toUpperCase():'?';
+  document.getElementById('cfg-repasse-atual').textContent=userMeta.repasse?Math.round(rep*100)+'%':'Não configurado';
+  document.getElementById('cfg-email-display').textContent=currentUser?.email||'';
+}
+async function salvarNome(){
+  const nome=document.getElementById('cfg-nome').value.trim();
+  if(!nome)return;
+  await sb.auth.updateUser({data:{...userMeta,nome}});
+  userMeta.nome=nome;renderConfig();atualizarSaudacao();showToast('✓ Nome salvo!');
+}
+async function salvarRepasse(){
+  const rep=(parseFloat(document.getElementById('cfg-repasse').value)||65)/100;
+  await sb.auth.updateUser({data:{...userMeta,repasse:rep.toString()}});
+  userMeta.repasse=rep.toString();renderConfig();renderPainel();showToast('✓ Repasse salvo!');
+}
+
+function saudacao(){
+  const h=new Date().getHours();
+  if(h>=5&&h<12)return'Bom dia';if(h>=12&&h<18)return'Boa tarde';return'Boa noite';
+}
+function atualizarSaudacao(){
+  const nome=userMeta.nome||'Marcus';
+  document.getElementById('saudacao').textContent=saudacao()+', '+nome+'! 👋';
+}
+</script>
+</body>
+</html>
